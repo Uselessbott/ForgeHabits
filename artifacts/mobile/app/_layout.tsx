@@ -35,6 +35,10 @@ function RootLayoutNav() {
         name="category-form"
         options={{ presentation: 'modal', headerShown: false, animation: 'slide_from_bottom' }}
       />
+      <Stack.Screen
+        name="weekly-review"
+        options={{ presentation: 'modal', headerShown: false, animation: 'slide_from_bottom' }}
+      />
     </Stack>
   );
 }

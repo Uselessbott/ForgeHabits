@@ -3,411 +3,308 @@ import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Platform } from '
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColors } from '@/hooks/useColors';
 import { useHabits } from '@/context/HabitsContext';
-import {
-  formatDate, parseDate, getTodayStr, getWeekStart, MONTH_NAMES, WEEKDAY_SHORT, addDays,
-} from '@/utils/scheduling';
-import {
-  WeeklyBarChart, MonthlyLineChart, StreakBar, DayOfWeekChart,
-} from '@/components/Charts';
+import { getTodayStr, getWeekStart, addDays, MONTH_NAMES, parseDate } from '@/utils/scheduling';
+import { WeeklyBarChart, MonthlyLineChart, PieChart } from '@/components/Charts';
 
-type Tab = 'daily' | 'weekly' | 'monthly';
-
-function SectionTitle({ title }: { title: string }) {
-  const colors = useColors();
-  return <Text style={[styles.sectionTitle, { color: colors.mutedForeground }]}>{title}</Text>;
-}
-
-function Card({ children, style }: { children: React.ReactNode; style?: object }) {
-  const colors = useColors();
-  return (
-    <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }, style]}>
-      {children}
-    </View>
-  );
-}
-
-function StatRow({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
-  const colors = useColors();
-  return (
-    <View style={styles.statRow}>
-      <Text style={[styles.statLabel, { color: colors.mutedForeground }]}>{label}</Text>
-      <Text style={[styles.statValue, { color: accent ? colors.primary : colors.foreground }]}>{value}</Text>
-    </View>
-  );
-}
+type Tab = 'daily' | 'weekly' | 'monthly' | 'lifetime';
 
 export default function InsightsScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { habits, logs, getDailyScore, getStreakData, getWeeklyTargetProgress, getHabitsForDate } = useHabits();
-  const [activeTab, setActiveTab] = useState<Tab>('daily');
+  const {
+    habits, getDailyStats, getWeeklyStats, getMonthlyStats, getLifetimeStats,
+    getLast7DaysData, getStreakData, getCalendarDay,
+  } = useHabits();
+  const [tab, setTab] = useState<Tab>('daily');
 
   const today = getTodayStr();
-  const todayDate = parseDate(today);
   const weekStart = getWeekStart(today);
-  const now = new Date();
-
+  const month = today.substring(0, 7);
   const topInset = insets.top + (Platform.OS === 'web' ? 67 : 0);
-  const bottomInset = Platform.OS === 'web' ? 34 : 0;
 
-  // ── Shared: best streak ──────────────────────────────────────────
-  const allStreakData = useMemo(() => {
-    return habits
-      .filter(h => !h.archived)
-      .map(h => ({ habit: h, ...getStreakData(h.id) }))
-      .sort((a, b) => b.current - a.current);
-  }, [habits, logs]);
+  const dailyStats = useMemo(() => getDailyStats(today), [today]);
+  const weeklyStats = useMemo(() => getWeeklyStats(weekStart), [weekStart]);
+  const monthlyStats = useMemo(() => getMonthlyStats(month), [month]);
+  const lifetimeStats = useMemo(() => getLifetimeStats(), []);
+  const last7Days = useMemo(() => getLast7DaysData(), [today]);
 
-  const bestCurrentStreak = allStreakData[0]?.current ?? 0;
+  const activeHabits = habits.filter(h => !h.archived);
 
-  // ── DAILY TAB ────────────────────────────────────────────────────
-  const last7Days = useMemo(() => {
-    return Array.from({ length: 7 }).map((_, i) => {
-      const d = new Date(todayDate);
-      d.setDate(d.getDate() - 6 + i);
-      const ds = formatDate(d);
-      const score = getDailyScore(ds);
-      const dayIdx = d.getDay();
-      return {
-        label: WEEKDAY_SHORT[dayIdx].slice(0, 3),
-        pct: score.total > 0 ? score.percentage : 0,
-        isToday: ds === today,
-        hasHabits: score.total > 0,
-        date: ds,
-      };
-    });
-  }, [today, logs, habits]);
+  const bestHabit = useMemo(() => {
+    if (!weeklyStats.bestHabitId) return null;
+    return activeHabits.find(h => h.id === weeklyStats.bestHabitId);
+  }, [weeklyStats, activeHabits]);
 
-  const todayScore = getDailyScore(today);
+  const worstHabit = useMemo(() => {
+    if (!weeklyStats.worstHabitId) return null;
+    return activeHabits.find(h => h.id === weeklyStats.worstHabitId);
+  }, [weeklyStats, activeHabits]);
 
-  // Week average (last 7 days)
-  const weekAvg = useMemo(() => {
-    const days = last7Days.filter(d => d.hasHabits);
-    if (days.length === 0) return 0;
-    return Math.round(days.reduce((acc, d) => acc + d.pct, 0) / days.length);
-  }, [last7Days]);
+  const nowDate = parseDate(today);
+  const monthDays = Array.from({ length: 30 }, (_, i) => {
+    const date = addDays(today, i - 29);
+    const d = getCalendarDay(date);
+    return d.percentage;
+  });
 
-  // ── WEEKLY TAB ───────────────────────────────────────────────────
-  const weeklyTargetHabits = habits.filter(h => !h.archived && h.frequency === 'weekly_target');
-
-  const dayOfWeekStats = useMemo(() => {
-    const counts: number[] = Array(7).fill(0);
-    const totals: number[] = Array(7).fill(0);
-    // Last 8 weeks
-    for (let w = 0; w < 8; w++) {
-      for (let d = 0; d < 7; d++) {
-        const date = new Date(todayDate);
-        date.setDate(date.getDate() - w * 7 - (6 - d));
-        const ds = formatDate(date);
-        if (ds > today) continue;
-        const score = getDailyScore(ds);
-        const dow = date.getDay();
-        if (score.total > 0) {
-          totals[dow]++;
-          if (score.percentage === 100) counts[dow]++;
-        }
-      }
-    }
-    return Array.from({ length: 7 }, (_, i) => ({
-      label: WEEKDAY_SHORT[i],
-      pct: totals[i] > 0 ? Math.round((counts[i] / totals[i]) * 100) : 0,
-      count: counts[i],
-    }));
-  }, [today, logs, habits]);
-
-  // ── MONTHLY TAB ──────────────────────────────────────────────────
-  const monthlyLineData = useMemo(() => {
-    const year = now.getFullYear();
-    const month = now.getMonth();
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-    return Array.from({ length: daysInMonth }, (_, i) => {
-      const d = i + 1;
-      const ds = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-      const score = getDailyScore(ds);
-      return { day: d, pct: score.percentage, hasHabits: score.total > 0 };
-    }).filter(d => d.hasHabits || `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(d.day).padStart(2, '0')}` <= today);
-  }, [today, logs, habits]);
-
-  const monthlyHabits = habits.filter(h => !h.archived && h.frequency === 'monthly');
-
-  const monthlyStats = useMemo(() => {
-    let totalCompleted = 0;
-    let totalScheduled = 0;
-    monthlyLineData.forEach(d => {
-      const ds = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(d.day).padStart(2, '0')}`;
-      const score = getDailyScore(ds);
-      totalCompleted += score.completed;
-      totalScheduled += score.total;
-    });
-    const pct = totalScheduled > 0 ? Math.round((totalCompleted / totalScheduled) * 100) : 0;
-    return { completed: totalCompleted, total: totalScheduled, pct };
-  }, [monthlyLineData, logs, habits]);
-
-  // ── Render ───────────────────────────────────────────────────────
-  function renderDaily() {
-    return (
-      <View>
-        {/* 7-Day Bar Chart */}
-        <SectionTitle title="COMPLETION — LAST 7 DAYS" />
-        <Card style={{ paddingVertical: 16, paddingHorizontal: 8 }}>
-          <WeeklyBarChart data={last7Days} height={170} />
-        </Card>
-
-        {/* Stats */}
-        <SectionTitle title="TODAY'S STATS" />
-        <Card>
-          <StatRow label="Today" value={`${todayScore.percentage}%`} accent />
-          <Divider />
-          <StatRow label="Completed" value={`${todayScore.completed} / ${todayScore.total}`} />
-          <Divider />
-          <StatRow label="7-Day Avg" value={`${weekAvg}%`} />
-          <Divider />
-          <StatRow label="Best Streak" value={`🔥 ${bestCurrentStreak} days`} />
-        </Card>
-
-        {/* Today's Habits */}
-        {getHabitsForDate(today).length > 0 && (
-          <>
-            <SectionTitle title="TODAY'S HABITS" />
-            <Card>
-              {getHabitsForDate(today).map((h, i) => {
-                const log = logs.find(l => l.habitId === h.id && l.date === today);
-                const done = log?.status === 'completed' || log?.status === 'frozen';
-                const frozen = log?.status === 'frozen';
-                return (
-                  <View key={h.id}>
-                    {i > 0 && <Divider />}
-                    <View style={styles.habitRow}>
-                      <Text style={styles.habitEmoji}>{h.emoji || '✨'}</Text>
-                      <Text style={[styles.habitName, { color: done ? colors.mutedForeground : colors.foreground }]} numberOfLines={1}>
-                        {h.name}
-                      </Text>
-                      <Text style={{ color: done ? (frozen ? '#60A5FA' : colors.success) : colors.destructive, fontSize: 14 }}>
-                        {done ? (frozen ? '❄️' : '✓') : '–'}
-                      </Text>
-                    </View>
-                  </View>
-                );
-              })}
-            </Card>
-          </>
-        )}
-      </View>
-    );
-  }
-
-  function renderWeekly() {
-    return (
-      <View>
-        {/* Weekly completion by day-of-week */}
-        <SectionTitle title="BEST DAYS OF THE WEEK" />
-        <Card style={{ paddingVertical: 16, paddingHorizontal: 8 }}>
-          <DayOfWeekChart data={dayOfWeekStats} />
-        </Card>
-
-        {/* Streak leaderboard */}
-        {allStreakData.filter(d => d.current > 0).length > 0 && (
-          <>
-            <SectionTitle title="CURRENT STREAKS" />
-            <Card style={{ padding: 16 }}>
-              {allStreakData
-                .filter(d => d.current > 0)
-                .slice(0, 8)
-                .map(d => (
-                  <StreakBar
-                    key={d.habit.id}
-                    label={d.habit.name}
-                    emoji={d.habit.emoji || '✨'}
-                    value={d.current}
-                    max={Math.max(bestCurrentStreak, 1)}
-                    color={colors.primary}
-                  />
-                ))}
-            </Card>
-          </>
-        )}
-
-        {/* Weekly target habits */}
-        {weeklyTargetHabits.length > 0 && (
-          <>
-            <SectionTitle title="WEEKLY TARGETS" />
-            <Card>
-              {weeklyTargetHabits.map((h, i) => {
-                const progress = getWeeklyTargetProgress(h.id, weekStart);
-                const pct = progress.target > 0 ? progress.completed / progress.target : 0;
-                return (
-                  <View key={h.id}>
-                    {i > 0 && <Divider />}
-                    <View style={[styles.habitRow, { paddingVertical: 14 }]}>
-                      <Text style={styles.habitEmoji}>{h.emoji || '✨'}</Text>
-                      <View style={{ flex: 1 }}>
-                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
-                          <Text style={[styles.habitName, { color: colors.foreground }]} numberOfLines={1}>
-                            {h.name}
-                          </Text>
-                          <Text style={[styles.habitName, { color: pct >= 1 ? colors.success : colors.primary }]}>
-                            {progress.completed}/{progress.target}
-                          </Text>
-                        </View>
-                        <View style={[styles.progressTrack, { backgroundColor: colors.border }]}>
-                          <View style={[styles.progressFill, {
-                            backgroundColor: pct >= 1 ? colors.success : colors.primary,
-                            width: `${Math.min(100, pct * 100)}%` as any,
-                          }]} />
-                        </View>
-                      </View>
-                    </View>
-                  </View>
-                );
-              })}
-            </Card>
-          </>
-        )}
-
-        {allStreakData.filter(d => d.current > 0).length === 0 && weeklyTargetHabits.length === 0 && (
-          <Text style={[styles.noData, { color: colors.mutedForeground }]}>
-            Complete habits to see your weekly stats.
-          </Text>
-        )}
-      </View>
-    );
-  }
-
-  function renderMonthly() {
-    const monthName = MONTH_NAMES[now.getMonth()];
-    return (
-      <View>
-        {/* Monthly Line Chart */}
-        <SectionTitle title={`DAILY COMPLETION — ${monthName.toUpperCase()}`} />
-        {monthlyLineData.length >= 2 ? (
-          <Card style={{ paddingVertical: 16, paddingHorizontal: 8 }}>
-            <MonthlyLineChart data={monthlyLineData} height={150} />
-          </Card>
-        ) : (
-          <Card>
-            <Text style={[styles.noData, { color: colors.mutedForeground, paddingVertical: 24 }]}>
-              Keep tracking to see your monthly trend.
-            </Text>
-          </Card>
-        )}
-
-        {/* Monthly stats */}
-        <SectionTitle title={`${monthName.toUpperCase()} OVERVIEW`} />
-        <Card>
-          <StatRow label="Month Completion" value={`${monthlyStats.pct}%`} accent />
-          <Divider />
-          <StatRow label="Total Completed" value={`${monthlyStats.completed}`} />
-          <Divider />
-          <StatRow label="Total Scheduled" value={`${monthlyStats.total}`} />
-          <Divider />
-          <StatRow label="Days Tracked" value={`${monthlyLineData.length}`} />
-        </Card>
-
-        {/* Streak leaderboard */}
-        {allStreakData.length > 0 && (
-          <>
-            <SectionTitle title="ALL-TIME STREAKS" />
-            <Card style={{ padding: 16 }}>
-              {allStreakData.slice(0, 6).map(d => (
-                <StreakBar
-                  key={d.habit.id}
-                  label={d.habit.name}
-                  emoji={d.habit.emoji || '✨'}
-                  value={d.longest}
-                  max={Math.max(...allStreakData.map(x => x.longest), 1)}
-                  color={colors.warning}
-                />
-              ))}
-            </Card>
-          </>
-        )}
-
-        {/* Monthly habits */}
-        {monthlyHabits.length > 0 && (
-          <>
-            <SectionTitle title="MONTHLY HABIT PROGRESS" />
-            <Card>
-              {monthlyHabits.map((h, i) => {
-                const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-                let completed = 0;
-                let total = 0;
-                for (let d = 1; d <= daysInMonth; d++) {
-                  const ds = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-                  if (ds > today) continue;
-                  if ((h.monthlyDates ?? []).includes(d)) {
-                    total++;
-                    const log = logs.find(l => l.habitId === h.id && l.date === ds);
-                    if (log?.status === 'completed' || log?.status === 'frozen') completed++;
-                  }
-                }
-                const pct = total > 0 ? completed / total : 0;
-                return (
-                  <View key={h.id}>
-                    {i > 0 && <Divider />}
-                    <View style={[styles.habitRow, { paddingVertical: 14 }]}>
-                      <Text style={styles.habitEmoji}>{h.emoji || '✨'}</Text>
-                      <View style={{ flex: 1 }}>
-                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
-                          <Text style={[styles.habitName, { color: colors.foreground }]} numberOfLines={1}>
-                            {h.name}
-                          </Text>
-                          <Text style={[styles.habitName, { color: pct >= 1 ? colors.success : colors.primary }]}>
-                            {completed}/{total}
-                          </Text>
-                        </View>
-                        <View style={[styles.progressTrack, { backgroundColor: colors.border }]}>
-                          <View style={[styles.progressFill, {
-                            backgroundColor: pct >= 1 ? colors.success : colors.primary,
-                            width: `${Math.min(100, pct * 100)}%` as any,
-                          }]} />
-                        </View>
-                      </View>
-                    </View>
-                  </View>
-                );
-              })}
-            </Card>
-          </>
-        )}
-      </View>
-    );
-  }
-
-  function Divider() {
-    return <View style={[styles.divider, { backgroundColor: colors.border }]} />;
-  }
+  const tabs: { key: Tab; label: string }[] = [
+    { key: 'daily', label: 'Today' },
+    { key: 'weekly', label: 'Week' },
+    { key: 'monthly', label: 'Month' },
+    { key: 'lifetime', label: 'All Time' },
+  ];
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
       <ScrollView
-        contentContainerStyle={[
-          styles.scroll,
-          { paddingTop: topInset + 16, paddingBottom: 120 + bottomInset },
-        ]}
+        contentContainerStyle={[styles.scroll, { paddingTop: topInset + 16, paddingBottom: 120 }]}
         showsVerticalScrollIndicator={false}
       >
         <Text style={[styles.title, { color: colors.foreground }]}>Insights</Text>
 
-        {/* Tab Selector */}
+        {/* Tab Bar */}
         <View style={[styles.tabBar, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          {(['daily', 'weekly', 'monthly'] as Tab[]).map(tab => (
+          {tabs.map(t => (
             <TouchableOpacity
-              key={tab}
-              onPress={() => setActiveTab(tab)}
-              style={[styles.tabBtn, activeTab === tab && { backgroundColor: colors.primary }]}
+              key={t.key}
+              onPress={() => setTab(t.key)}
+              style={[styles.tabBtn, tab === t.key && { backgroundColor: colors.primary }]}
               activeOpacity={0.8}
             >
-              <Text style={[styles.tabLabel, { color: activeTab === tab ? '#fff' : colors.mutedForeground }]}>
-                {tab.charAt(0).toUpperCase() + tab.slice(1)}
-              </Text>
+              <Text style={[styles.tabText, { color: tab === t.key ? '#fff' : colors.mutedForeground }]}>{t.label}</Text>
             </TouchableOpacity>
           ))}
         </View>
 
-        {activeTab === 'daily' && renderDaily()}
-        {activeTab === 'weekly' && renderWeekly()}
-        {activeTab === 'monthly' && renderMonthly()}
+        {/* DAILY TAB */}
+        {tab === 'daily' && (
+          <>
+            <StatCard
+              colors={colors}
+              items={[
+                { label: 'Completed', value: dailyStats.completed, color: '#22c55e' },
+                { label: 'Missed', value: dailyStats.missed, color: '#ef4444' },
+                { label: 'Total', value: dailyStats.total, color: colors.foreground },
+                { label: 'Score', value: `${dailyStats.completionPercent}%`, color: colors.primary },
+              ]}
+            />
+
+            {dailyStats.total > 0 && (
+              <PieChart
+                colors={colors}
+                completed={dailyStats.completed}
+                missed={dailyStats.missed}
+                title="Today's Completion"
+              />
+            )}
+
+            <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>LAST 7 DAYS</Text>
+            <View style={[styles.chartCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <WeeklyBarChart data={last7Days} colors={colors} />
+            </View>
+
+            <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>TODAY'S HABITS</Text>
+            {activeHabits.map(h => {
+              const { current, longest } = getStreakData(h.id);
+              return (
+                <View key={h.id} style={[styles.habitStatRow, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                  <Text style={{ fontSize: 20 }}>{h.emoji || '✨'}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.habitStatName, { color: colors.foreground }]} numberOfLines={1}>{h.name}</Text>
+                    <Text style={[styles.habitStatSub, { color: colors.mutedForeground }]}>Best: {longest} days</Text>
+                  </View>
+                  {current > 0 && (
+                    <View style={[styles.streakBadge, { backgroundColor: colors.primary + '22' }]}>
+                      <Text style={[styles.streakBadgeText, { color: colors.primary }]}>🔥 {current}</Text>
+                    </View>
+                  )}
+                </View>
+              );
+            })}
+          </>
+        )}
+
+        {/* WEEKLY TAB */}
+        {tab === 'weekly' && (
+          <>
+            <StatCard
+              colors={colors}
+              items={[
+                { label: 'Completed', value: weeklyStats.completed, color: '#22c55e' },
+                { label: 'Missed', value: weeklyStats.missed, color: '#ef4444' },
+                { label: 'Total', value: weeklyStats.totalScheduled, color: colors.foreground },
+                { label: 'Rate', value: `${weeklyStats.completionPercent}%`, color: colors.primary },
+              ]}
+            />
+
+            <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>DAILY COMPLETION THIS WEEK</Text>
+            <View style={[styles.chartCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <WeeklyBarChart data={last7Days} colors={colors} />
+            </View>
+
+            {weeklyStats.totalScheduled > 0 && (
+              <PieChart colors={colors} completed={weeklyStats.completed} missed={weeklyStats.missed} title="Weekly Breakdown" />
+            )}
+
+            <View style={styles.row}>
+              {bestHabit && (
+                <View style={[styles.halfCard, { backgroundColor: colors.card, borderColor: '#22c55e33' }]}>
+                  <Text style={[styles.halfCardLabel, { color: colors.mutedForeground }]}>BEST HABIT</Text>
+                  <Text style={{ fontSize: 28 }}>{bestHabit.emoji || '✨'}</Text>
+                  <Text style={[styles.halfCardName, { color: '#22c55e' }]} numberOfLines={2}>{bestHabit.name}</Text>
+                </View>
+              )}
+              {worstHabit && worstHabit.id !== bestHabit?.id && (
+                <View style={[styles.halfCard, { backgroundColor: colors.card, borderColor: '#ef444433' }]}>
+                  <Text style={[styles.halfCardLabel, { color: colors.mutedForeground }]}>NEEDS WORK</Text>
+                  <Text style={{ fontSize: 28 }}>{worstHabit.emoji || '✨'}</Text>
+                  <Text style={[styles.halfCardName, { color: '#ef4444' }]} numberOfLines={2}>{worstHabit.name}</Text>
+                </View>
+              )}
+            </View>
+
+            <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>WEEKLY STREAKS</Text>
+            {activeHabits.slice(0, 10).map(h => {
+              const { current, longest } = getStreakData(h.id);
+              return (
+                <View key={h.id} style={[styles.habitStatRow, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                  <Text style={{ fontSize: 20 }}>{h.emoji || '✨'}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.habitStatName, { color: colors.foreground }]} numberOfLines={1}>{h.name}</Text>
+                    <Text style={[styles.habitStatSub, { color: colors.mutedForeground }]}>Longest: {longest}</Text>
+                  </View>
+                  <View style={[styles.streakBadge, { backgroundColor: current > 0 ? colors.primary + '22' : colors.card }]}>
+                    <Text style={[styles.streakBadgeText, { color: current > 0 ? colors.primary : colors.mutedForeground }]}>
+                      {current > 0 ? `🔥 ${current}` : '—'}
+                    </Text>
+                  </View>
+                </View>
+              );
+            })}
+          </>
+        )}
+
+        {/* MONTHLY TAB */}
+        {tab === 'monthly' && (
+          <>
+            <StatCard
+              colors={colors}
+              items={[
+                { label: 'Completed', value: monthlyStats.completed, color: '#22c55e' },
+                { label: 'Missed', value: monthlyStats.missed, color: '#ef4444' },
+                { label: 'Scheduled', value: monthlyStats.totalScheduled, color: colors.foreground },
+                { label: 'Rate', value: `${monthlyStats.completionPercent}%`, color: colors.primary },
+              ]}
+            />
+
+            <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>30-DAY TREND</Text>
+            <View style={[styles.chartCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <MonthlyLineChart data={monthDays} colors={colors} />
+            </View>
+
+            {monthlyStats.totalScheduled > 0 && (
+              <PieChart colors={colors} completed={monthlyStats.completed} missed={monthlyStats.missed} title="Monthly Breakdown" />
+            )}
+
+            {(() => {
+              const most = activeHabits.find(h => h.id === monthlyStats.mostConsistentHabitId);
+              const least = activeHabits.find(h => h.id === monthlyStats.leastConsistentHabitId);
+              return (
+                <View style={styles.row}>
+                  {most && (
+                    <View style={[styles.halfCard, { backgroundColor: colors.card, borderColor: '#22c55e33' }]}>
+                      <Text style={[styles.halfCardLabel, { color: colors.mutedForeground }]}>MOST CONSISTENT</Text>
+                      <Text style={{ fontSize: 28 }}>{most.emoji || '✨'}</Text>
+                      <Text style={[styles.halfCardName, { color: '#22c55e' }]} numberOfLines={2}>{most.name}</Text>
+                    </View>
+                  )}
+                  {least && least.id !== most?.id && (
+                    <View style={[styles.halfCard, { backgroundColor: colors.card, borderColor: '#ef444433' }]}>
+                      <Text style={[styles.halfCardLabel, { color: colors.mutedForeground }]}>LEAST CONSISTENT</Text>
+                      <Text style={{ fontSize: 28 }}>{least.emoji || '✨'}</Text>
+                      <Text style={[styles.halfCardName, { color: '#ef4444' }]} numberOfLines={2}>{least.name}</Text>
+                    </View>
+                  )}
+                </View>
+              );
+            })()}
+          </>
+        )}
+
+        {/* LIFETIME TAB */}
+        {tab === 'lifetime' && (
+          <>
+            <View style={[styles.bigStatCard, { backgroundColor: colors.primary + '18', borderColor: colors.primary + '33' }]}>
+              <Text style={[styles.bigStatNum, { color: colors.primary }]}>{lifetimeStats.overallCompletion}%</Text>
+              <Text style={[styles.bigStatLabel, { color: colors.mutedForeground }]}>Overall Completion Rate</Text>
+            </View>
+
+            <StatCard
+              colors={colors}
+              items={[
+                { label: '✅ Done', value: lifetimeStats.totalCompleted, color: '#22c55e' },
+                { label: '❌ Missed', value: lifetimeStats.totalMissed, color: '#ef4444' },
+                { label: '📅 Days Active', value: lifetimeStats.activeDays, color: colors.foreground },
+                { label: '💪 Habits', value: lifetimeStats.habitsCreated, color: colors.primary },
+              ]}
+            />
+
+            <View style={styles.row}>
+              <View style={[styles.halfCard, { backgroundColor: colors.card, borderColor: colors.primary + '33' }]}>
+                <Text style={[styles.halfCardLabel, { color: colors.mutedForeground }]}>LONGEST STREAK EVER</Text>
+                <Text style={[styles.bigNum, { color: colors.primary }]}>{lifetimeStats.longestEverStreak}</Text>
+                <Text style={[styles.halfCardName, { color: colors.mutedForeground }]}>days</Text>
+              </View>
+              <View style={[styles.halfCard, { backgroundColor: colors.card, borderColor: '#22c55e33' }]}>
+                <Text style={[styles.halfCardLabel, { color: colors.mutedForeground }]}>CURRENT BEST</Text>
+                <Text style={[styles.bigNum, { color: '#22c55e' }]}>{lifetimeStats.currentBestStreak}</Text>
+                <Text style={[styles.halfCardName, { color: colors.mutedForeground }]}>days 🔥</Text>
+              </View>
+            </View>
+
+            {lifetimeStats.totalCompleted + lifetimeStats.totalMissed > 0 && (
+              <PieChart colors={colors} completed={lifetimeStats.totalCompleted} missed={lifetimeStats.totalMissed} title="All-Time Ratio" />
+            )}
+
+            <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>ALL HABITS — LIFETIME STREAKS</Text>
+            {activeHabits.map(h => {
+              const { current, longest } = getStreakData(h.id);
+              const pct = longest > 0 ? Math.round((current / longest) * 100) : 0;
+              return (
+                <View key={h.id} style={[styles.habitStatRow, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                  <Text style={{ fontSize: 20 }}>{h.emoji || '✨'}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.habitStatName, { color: colors.foreground }]} numberOfLines={1}>{h.name}</Text>
+                    <View style={[styles.progressBarBg, { backgroundColor: colors.border }]}>
+                      <View style={[styles.progressBarFill, { backgroundColor: colors.primary, width: `${Math.min(pct, 100)}%` as any }]} />
+                    </View>
+                  </View>
+                  <View style={{ alignItems: 'flex-end' }}>
+                    <Text style={[styles.streakBadgeText, { color: colors.primary }]}>{current > 0 ? `🔥${current}` : '—'}</Text>
+                    <Text style={[{ fontSize: 10, color: colors.mutedForeground }]}>best: {longest}</Text>
+                  </View>
+                </View>
+              );
+            })}
+          </>
+        )}
       </ScrollView>
+    </View>
+  );
+}
+
+function StatCard({ colors, items }: { colors: any; items: { label: string; value: string | number; color: string }[] }) {
+  return (
+    <View style={[styles.statCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      {items.map((item, i) => (
+        <React.Fragment key={item.label}>
+          {i > 0 && <View style={[styles.divider, { backgroundColor: colors.border }]} />}
+          <View style={styles.statCardItem}>
+            <Text style={[styles.statCardNum, { color: item.color }]}>{item.value}</Text>
+            <Text style={[styles.statCardLabel, { color: colors.mutedForeground }]}>{item.label}</Text>
+          </View>
+        </React.Fragment>
+      ))}
     </View>
   );
 }
@@ -415,55 +312,30 @@ export default function InsightsScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1 },
   scroll: { paddingHorizontal: 20 },
-  title: { fontSize: 28, fontFamily: 'Inter_700Bold', letterSpacing: -0.8, marginBottom: 20 },
-  tabBar: {
-    flexDirection: 'row',
-    borderRadius: 12,
-    borderWidth: 1,
-    padding: 4,
-    marginBottom: 20,
-    gap: 4,
-  },
+  title: { fontSize: 24, fontFamily: 'Inter_700Bold', letterSpacing: -0.5, marginBottom: 20 },
+  tabBar: { flexDirection: 'row', borderRadius: 12, borderWidth: 1, padding: 4, marginBottom: 20, gap: 2 },
   tabBtn: { flex: 1, paddingVertical: 8, borderRadius: 9, alignItems: 'center' },
-  tabLabel: { fontSize: 13, fontFamily: 'Inter_600SemiBold' },
-  sectionTitle: {
-    fontSize: 11,
-    fontFamily: 'Inter_600SemiBold',
-    letterSpacing: 1.2,
-    marginBottom: 10,
-    marginTop: 20,
-  },
-  card: {
-    borderRadius: 14,
-    borderWidth: 1,
-    overflow: 'hidden',
-    marginBottom: 0,
-  },
-  statRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-  },
-  statLabel: { fontSize: 14, fontFamily: 'Inter_400Regular' },
-  statValue: { fontSize: 16, fontFamily: 'Inter_700Bold' },
-  divider: { height: 1, marginHorizontal: 16 },
-  habitRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 10,
-  },
-  habitEmoji: { fontSize: 18 },
-  habitName: { flex: 1, fontSize: 14, fontFamily: 'Inter_500Medium' },
-  progressTrack: { height: 5, borderRadius: 3, overflow: 'hidden' },
-  progressFill: { height: 5, borderRadius: 3 },
-  noData: {
-    fontSize: 14,
-    fontFamily: 'Inter_400Regular',
-    textAlign: 'center',
-    paddingVertical: 16,
-  },
+  tabText: { fontSize: 13, fontFamily: 'Inter_600SemiBold' },
+  statCard: { flexDirection: 'row', borderRadius: 16, borderWidth: 1, padding: 16, marginBottom: 16, justifyContent: 'space-around' },
+  statCardItem: { alignItems: 'center' },
+  statCardNum: { fontSize: 22, fontFamily: 'Inter_700Bold' },
+  statCardLabel: { fontSize: 11, fontFamily: 'Inter_400Regular', marginTop: 2 },
+  divider: { width: 1, marginVertical: 4 },
+  sectionLabel: { fontSize: 11, fontFamily: 'Inter_600SemiBold', letterSpacing: 1.2, marginBottom: 10, marginTop: 4 },
+  chartCard: { borderRadius: 16, borderWidth: 1, padding: 16, marginBottom: 16 },
+  habitStatRow: { flexDirection: 'row', alignItems: 'center', borderRadius: 12, borderWidth: 1, padding: 12, marginBottom: 8, gap: 12 },
+  habitStatName: { fontSize: 14, fontFamily: 'Inter_600SemiBold', marginBottom: 2 },
+  habitStatSub: { fontSize: 12, fontFamily: 'Inter_400Regular' },
+  streakBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
+  streakBadgeText: { fontSize: 13, fontFamily: 'Inter_600SemiBold' },
+  row: { flexDirection: 'row', gap: 12, marginBottom: 16 },
+  halfCard: { flex: 1, borderRadius: 16, borderWidth: 1, padding: 14, alignItems: 'center', gap: 6 },
+  halfCardLabel: { fontSize: 10, fontFamily: 'Inter_600SemiBold', letterSpacing: 1 },
+  halfCardName: { fontSize: 13, fontFamily: 'Inter_600SemiBold', textAlign: 'center' },
+  bigStatCard: { borderRadius: 20, borderWidth: 1, padding: 24, alignItems: 'center', marginBottom: 16 },
+  bigStatNum: { fontSize: 48, fontFamily: 'Inter_700Bold', letterSpacing: -2 },
+  bigStatLabel: { fontSize: 14, fontFamily: 'Inter_400Regular', marginTop: 4 },
+  bigNum: { fontSize: 36, fontFamily: 'Inter_700Bold' },
+  progressBarBg: { height: 4, borderRadius: 2, marginTop: 6, overflow: 'hidden' },
+  progressBarFill: { height: 4, borderRadius: 2 },
 });

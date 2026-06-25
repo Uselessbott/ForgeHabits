@@ -1,27 +1,29 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import Svg, {
-  Rect, Line, Text as SvgText, Path, Circle, Defs, LinearGradient, Stop, G,
+  Rect, Line, Text as SvgText, Path, Circle, Defs, LinearGradient, Stop, G, ClipPath,
 } from 'react-native-svg';
 import { useColors } from '@/hooks/useColors';
 
 // ─────────────────────────────────────────────────────────────────
 // 7-Day Bar Chart
+// data items: { date, label, percentage, completed, total }
 // ─────────────────────────────────────────────────────────────────
-interface BarDay {
-  label: string;   // e.g. "Mon"
-  pct: number;     // 0-100
-  isToday: boolean;
-  hasHabits: boolean;
+interface BarDayItem {
+  date: string;
+  label: string;
+  percentage: number;
+  completed: number;
+  total: number;
 }
 
 interface WeeklyBarChartProps {
-  data: BarDay[];
+  data: BarDayItem[];
+  colors: any;
   height?: number;
 }
 
-export function WeeklyBarChart({ data, height = 160 }: WeeklyBarChartProps) {
-  const colors = useColors();
+export function WeeklyBarChart({ data, colors, height = 160 }: WeeklyBarChartProps) {
   const paddingH = 12;
   const paddingTop = 12;
   const paddingBottom = 36;
@@ -30,109 +32,42 @@ export function WeeklyBarChart({ data, height = 160 }: WeeklyBarChartProps) {
   const barCount = data.length;
   const gap = 8;
   const barW = (width - paddingH * 2 - gap * (barCount - 1)) / barCount;
+  const today = new Date().toISOString().split('T')[0];
 
   function barColor(pct: number, hasHabits: boolean, isToday: boolean): string {
     if (!hasHabits) return colors.border;
     if (isToday && pct === 0) return colors.primary + '44';
-    if (pct === 0) return colors.destructive + '66';
-    if (pct < 50) return colors.warning + 'CC';
+    if (pct === 0) return '#ef4444' + '66';
+    if (pct < 50) return '#eab308' + 'CC';
     if (pct < 100) return colors.primary + 'CC';
-    return colors.success;
+    return '#22c55e';
   }
 
   return (
     <View style={{ alignItems: 'center' }}>
       <Svg width={width} height={height} style={{ overflow: 'visible' }}>
-        {/* Horizontal guide lines */}
         {[0, 25, 50, 75, 100].map(pct => {
           const y = paddingTop + chartH - (pct / 100) * chartH;
           return (
             <G key={pct}>
-              <Line
-                x1={paddingH}
-                y1={y}
-                x2={width - paddingH}
-                y2={y}
-                stroke={colors.border}
-                strokeWidth={0.5}
-                strokeDasharray={pct === 0 ? '0' : '3,3'}
-              />
-              {pct > 0 && (
-                <SvgText
-                  x={paddingH - 4}
-                  y={y + 4}
-                  fontSize={9}
-                  fill={colors.mutedForeground}
-                  textAnchor="end"
-                >
-                  {pct}
-                </SvgText>
-              )}
+              <Line x1={paddingH} y1={y} x2={width - paddingH} y2={y} stroke={colors.border} strokeWidth={0.5} strokeDasharray={pct === 0 ? '0' : '3,3'} />
+              {pct > 0 && <SvgText x={paddingH - 4} y={y + 4} fontSize={9} fill={colors.mutedForeground} textAnchor="end">{pct}</SvgText>}
             </G>
           );
         })}
-
-        {/* Bars */}
         {data.map((day, i) => {
           const x = paddingH + i * (barW + gap);
-          const barH = Math.max(4, (day.pct / 100) * chartH);
+          const barH = Math.max(4, (day.percentage / 100) * chartH);
           const y = paddingTop + chartH - barH;
-          const fill = barColor(day.pct, day.hasHabits, day.isToday);
-
+          const isToday = day.date === today;
+          const fill = barColor(day.percentage, day.total > 0, isToday);
           return (
             <G key={i}>
-              {/* Bar background (empty track) */}
-              <Rect
-                x={x}
-                y={paddingTop}
-                width={barW}
-                height={chartH}
-                rx={6}
-                fill={colors.border + '44'}
-              />
-              {/* Bar fill */}
-              <Rect
-                x={x}
-                y={y}
-                width={barW}
-                height={barH}
-                rx={6}
-                fill={fill}
-              />
-              {/* Today indicator */}
-              {day.isToday && (
-                <Rect
-                  x={x}
-                  y={paddingTop + chartH + 6}
-                  width={barW}
-                  height={3}
-                  rx={1.5}
-                  fill={colors.primary}
-                />
-              )}
-              {/* Day label */}
-              <SvgText
-                x={x + barW / 2}
-                y={paddingTop + chartH + 24}
-                fontSize={11}
-                fontWeight={day.isToday ? 'bold' : 'normal'}
-                fill={day.isToday ? colors.primary : colors.mutedForeground}
-                textAnchor="middle"
-              >
-                {day.label}
-              </SvgText>
-              {/* % label on top of bar if space */}
-              {day.hasHabits && day.pct > 0 && (
-                <SvgText
-                  x={x + barW / 2}
-                  y={y - 4}
-                  fontSize={9}
-                  fill={colors.mutedForeground}
-                  textAnchor="middle"
-                >
-                  {day.pct}%
-                </SvgText>
-              )}
+              <Rect x={x} y={paddingTop} width={barW} height={chartH} rx={6} fill={colors.border + '44'} />
+              <Rect x={x} y={y} width={barW} height={barH} rx={6} fill={fill} />
+              {isToday && <Rect x={x} y={paddingTop + chartH + 6} width={barW} height={3} rx={1.5} fill={colors.primary} />}
+              <SvgText x={x + barW / 2} y={paddingTop + chartH + 24} fontSize={11} fontWeight={isToday ? 'bold' : 'normal'} fill={isToday ? colors.primary : colors.mutedForeground} textAnchor="middle">{day.label}</SvgText>
+              {day.total > 0 && day.percentage > 0 && <SvgText x={x + barW / 2} y={y - 4} fontSize={9} fill={colors.mutedForeground} textAnchor="middle">{day.percentage}%</SvgText>}
             </G>
           );
         })}
@@ -142,48 +77,40 @@ export function WeeklyBarChart({ data, height = 160 }: WeeklyBarChartProps) {
 }
 
 // ─────────────────────────────────────────────────────────────────
-// Monthly Line Chart
+// Monthly Line Chart — accepts an array of percentage numbers (0-100)
 // ─────────────────────────────────────────────────────────────────
-interface LinePoint {
-  day: number;
-  pct: number;
-  hasHabits: boolean;
-}
-
 interface MonthlyLineChartProps {
-  data: LinePoint[];
+  data: number[];
+  colors: any;
   height?: number;
 }
 
-export function MonthlyLineChart({ data, height = 140 }: MonthlyLineChartProps) {
-  const colors = useColors();
+export function MonthlyLineChart({ data, colors, height = 140 }: MonthlyLineChartProps) {
   const paddingH = 24;
   const paddingTop = 12;
   const paddingBottom = 28;
   const chartH = height - paddingTop - paddingBottom;
   const width = 320;
   const chartW = width - paddingH * 2;
-  const activeData = data.filter(d => d.hasHabits);
+  const nonZeroData = data.filter(p => p > 0);
 
-  if (activeData.length === 0) return null;
-
-  const maxDay = data[data.length - 1]?.day ?? 1;
-
-  function xPos(day: number): number {
-    return paddingH + ((day - 1) / Math.max(1, maxDay - 1)) * chartW;
-  }
-  function yPos(pct: number): number {
-    return paddingTop + chartH - (pct / 100) * chartH;
+  if (nonZeroData.length < 2) {
+    return (
+      <View style={{ alignItems: 'center', height, justifyContent: 'center' }}>
+        <Text style={{ color: colors.mutedForeground, fontSize: 13, fontFamily: 'Inter_400Regular' }}>Not enough data yet</Text>
+      </View>
+    );
   }
 
-  // Build path
-  const pathPoints = activeData.map(d => `${xPos(d.day)},${yPos(d.pct)}`);
+  function xPos(i: number): number { return paddingH + (i / Math.max(1, data.length - 1)) * chartW; }
+  function yPos(pct: number): number { return paddingTop + chartH - (pct / 100) * chartH; }
+
+  const activePoints = data.map((pct, i) => ({ pct, i })).filter(p => p.pct > 0);
+  const pathPoints = activePoints.map(p => `${xPos(p.i)},${yPos(p.pct)}`);
   const linePath = `M ${pathPoints.join(' L ')}`;
-
-  // Area fill path (close to bottom)
-  const firstX = xPos(activeData[0].day);
-  const lastX = xPos(activeData[activeData.length - 1].day);
-  const areaPath = `M ${firstX},${yPos(activeData[0].pct)} L ${pathPoints.slice(1).join(' L ')} L ${lastX},${paddingTop + chartH} L ${firstX},${paddingTop + chartH} Z`;
+  const firstX = xPos(activePoints[0].i);
+  const lastX = xPos(activePoints[activePoints.length - 1].i);
+  const areaPath = `M ${firstX},${yPos(activePoints[0].pct)} L ${pathPoints.slice(1).join(' L ')} L ${lastX},${paddingTop + chartH} L ${firstX},${paddingTop + chartH} Z`;
 
   return (
     <View style={{ alignItems: 'center' }}>
@@ -194,70 +121,141 @@ export function MonthlyLineChart({ data, height = 140 }: MonthlyLineChartProps) 
             <Stop offset="1" stopColor={colors.primary} stopOpacity={0} />
           </LinearGradient>
         </Defs>
-
-        {/* Guide lines */}
         {[0, 50, 100].map(pct => (
           <G key={pct}>
-            <Line
-              x1={paddingH}
-              y1={yPos(pct)}
-              x2={width - paddingH}
-              y2={yPos(pct)}
-              stroke={colors.border}
-              strokeWidth={0.5}
-              strokeDasharray={pct === 0 ? '0' : '3,3'}
-            />
-            <SvgText
-              x={paddingH - 4}
-              y={yPos(pct) + 4}
-              fontSize={9}
-              fill={colors.mutedForeground}
-              textAnchor="end"
-            >
-              {pct}
-            </SvgText>
+            <Line x1={paddingH} y1={yPos(pct)} x2={width - paddingH} y2={yPos(pct)} stroke={colors.border} strokeWidth={0.5} strokeDasharray={pct === 0 ? '0' : '3,3'} />
+            <SvgText x={paddingH - 4} y={yPos(pct) + 4} fontSize={9} fill={colors.mutedForeground} textAnchor="end">{pct}</SvgText>
           </G>
         ))}
-
-        {/* Area fill */}
         <Path d={areaPath} fill="url(#areaGrad)" />
-
-        {/* Line */}
         <Path d={linePath} stroke={colors.primary} strokeWidth={2} fill="none" strokeLinecap="round" strokeLinejoin="round" />
-
-        {/* Dots */}
-        {activeData.map((d, i) => (
-          <Circle
-            key={i}
-            cx={xPos(d.day)}
-            cy={yPos(d.pct)}
-            r={3}
-            fill={d.pct === 100 ? colors.success : d.pct > 0 ? colors.primary : colors.destructive}
-            stroke={colors.background}
-            strokeWidth={1}
-          />
+        {activePoints.map((p, idx) => (
+          <Circle key={idx} cx={xPos(p.i)} cy={yPos(p.pct)} r={3} fill={p.pct === 100 ? '#22c55e' : p.pct > 0 ? colors.primary : '#ef4444'} stroke={colors.background} strokeWidth={1} />
         ))}
-
-        {/* X-axis day labels (every 5 days) */}
-        {[1, 5, 10, 15, 20, 25, maxDay].map(d => {
-          if (d > maxDay) return null;
-          return (
-            <SvgText
-              key={d}
-              x={xPos(d)}
-              y={height - 6}
-              fontSize={9}
-              fill={colors.mutedForeground}
-              textAnchor="middle"
-            >
-              {d}
-            </SvgText>
-          );
-        })}
+        {[0, 10, 20, 29].map(d => (
+          <SvgText key={d} x={xPos(d)} y={height - 6} fontSize={9} fill={colors.mutedForeground} textAnchor="middle">{d + 1}</SvgText>
+        ))}
       </Svg>
     </View>
   );
 }
+
+// ─────────────────────────────────────────────────────────────────
+// Pie / Donut Chart
+// ─────────────────────────────────────────────────────────────────
+interface PieChartProps {
+  completed: number;
+  missed: number;
+  title: string;
+  colors: any;
+  size?: number;
+}
+
+export function PieChart({ completed, missed, title, colors, size = 120 }: PieChartProps) {
+  const total = completed + missed;
+  if (total === 0) return null;
+
+  const cx = size / 2;
+  const cy = size / 2;
+  const r = size / 2 - 10;
+  const strokeW = 22;
+  const completionPct = completed / total;
+
+  const circumference = 2 * Math.PI * r;
+  const completedArc = circumference * completionPct;
+  const missedArc = circumference * (1 - completionPct);
+
+  function describeArc(startAngle: number, endAngle: number): string {
+    const start = polarToCart(cx, cy, r, startAngle);
+    const end = polarToCart(cx, cy, r, endAngle);
+    const largeArc = endAngle - startAngle > 180 ? 1 : 0;
+    return `M ${start.x} ${start.y} A ${r} ${r} 0 ${largeArc} 1 ${end.x} ${end.y}`;
+  }
+
+  function polarToCart(cx: number, cy: number, r: number, angleDeg: number) {
+    const rad = ((angleDeg - 90) * Math.PI) / 180;
+    return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+  }
+
+  const completedAngle = completionPct * 360;
+
+  return (
+    <View style={[pieStyles.container, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      <Text style={[pieStyles.title, { color: colors.mutedForeground }]}>{title.toUpperCase()}</Text>
+      <View style={pieStyles.content}>
+        <View style={{ position: 'relative', width: size, height: size }}>
+          <Svg width={size} height={size}>
+            {/* Background circle */}
+            <Circle cx={cx} cy={cy} r={r} fill="none" stroke={colors.border} strokeWidth={strokeW} />
+            {/* Completed arc */}
+            {completedAngle > 0 && completedAngle < 360 && (
+              <Path
+                d={describeArc(0, completedAngle)}
+                fill="none"
+                stroke="#22c55e"
+                strokeWidth={strokeW}
+                strokeLinecap="round"
+              />
+            )}
+            {completedAngle >= 360 && (
+              <Circle cx={cx} cy={cy} r={r} fill="none" stroke="#22c55e" strokeWidth={strokeW} />
+            )}
+            {/* Missed arc */}
+            {completedAngle > 0 && completedAngle < 360 && (
+              <Path
+                d={describeArc(completedAngle, 360)}
+                fill="none"
+                stroke="#ef4444"
+                strokeWidth={strokeW}
+                strokeLinecap="round"
+              />
+            )}
+          </Svg>
+          {/* Center text */}
+          <View style={[pieStyles.centerText, { width: size, height: size }]}>
+            <Text style={[pieStyles.centerPct, { color: colors.foreground }]}>{Math.round(completionPct * 100)}%</Text>
+          </View>
+        </View>
+        <View style={pieStyles.legend}>
+          <View style={pieStyles.legendItem}>
+            <View style={[pieStyles.legendDot, { backgroundColor: '#22c55e' }]} />
+            <View>
+              <Text style={[pieStyles.legendNum, { color: '#22c55e' }]}>{completed}</Text>
+              <Text style={[pieStyles.legendLabel, { color: colors.mutedForeground }]}>Done</Text>
+            </View>
+          </View>
+          <View style={pieStyles.legendItem}>
+            <View style={[pieStyles.legendDot, { backgroundColor: '#ef4444' }]} />
+            <View>
+              <Text style={[pieStyles.legendNum, { color: '#ef4444' }]}>{missed}</Text>
+              <Text style={[pieStyles.legendLabel, { color: colors.mutedForeground }]}>Missed</Text>
+            </View>
+          </View>
+          <View style={pieStyles.legendItem}>
+            <View style={[pieStyles.legendDot, { backgroundColor: colors.border }]} />
+            <View>
+              <Text style={[pieStyles.legendNum, { color: colors.foreground }]}>{total}</Text>
+              <Text style={[pieStyles.legendLabel, { color: colors.mutedForeground }]}>Total</Text>
+            </View>
+          </View>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+const pieStyles = StyleSheet.create({
+  container: { borderRadius: 16, borderWidth: 1, padding: 16, marginBottom: 16 },
+  title: { fontSize: 11, fontFamily: 'Inter_600SemiBold', letterSpacing: 1.2, marginBottom: 12 },
+  content: { flexDirection: 'row', alignItems: 'center', gap: 20 },
+  centerText: { position: 'absolute', top: 0, left: 0, alignItems: 'center', justifyContent: 'center' },
+  centerPct: { fontSize: 20, fontFamily: 'Inter_700Bold' },
+  legend: { flex: 1, gap: 14 },
+  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  legendDot: { width: 12, height: 12, borderRadius: 6 },
+  legendNum: { fontSize: 18, fontFamily: 'Inter_700Bold' },
+  legendLabel: { fontSize: 11, fontFamily: 'Inter_400Regular' },
+});
 
 // ─────────────────────────────────────────────────────────────────
 // Streak Bar (horizontal)
@@ -273,17 +271,16 @@ interface StreakBarProps {
 export function StreakBar({ label, emoji, value, max, color }: StreakBarProps) {
   const colors = useColors();
   const pct = max > 0 ? Math.min(1, value / max) : 0;
-
   return (
     <View style={sbStyles.row}>
       <Text style={sbStyles.emoji}>{emoji}</Text>
       <View style={{ flex: 1 }}>
         <View style={sbStyles.labelRow}>
           <Text style={[sbStyles.label, { color: colors.foreground }]} numberOfLines={1}>{label}</Text>
-          <Text style={[sbStyles.val, { color: color }]}>🔥 {value}</Text>
+          <Text style={[sbStyles.val, { color }]}>🔥 {value}</Text>
         </View>
         <View style={[sbStyles.track, { backgroundColor: colors.border }]}>
-          <View style={[sbStyles.fill, { width: `${pct * 100}%`, backgroundColor: color }]} />
+          <View style={[sbStyles.fill, { width: `${pct * 100}%` as any, backgroundColor: color }]} />
         </View>
       </View>
     </View>
@@ -299,80 +296,3 @@ const sbStyles = StyleSheet.create({
   track: { height: 6, borderRadius: 3, overflow: 'hidden' },
   fill: { height: 6, borderRadius: 3 },
 });
-
-// ─────────────────────────────────────────────────────────────────
-// Day-of-week Heatmap (which weekdays you complete most)
-// ─────────────────────────────────────────────────────────────────
-interface DayOfWeekData {
-  label: string;
-  pct: number;
-  count: number;
-}
-
-interface DayOfWeekChartProps {
-  data: DayOfWeekData[];
-}
-
-export function DayOfWeekChart({ data }: DayOfWeekChartProps) {
-  const colors = useColors();
-  const width = 320;
-  const paddingH = 24;
-  const barH = 28;
-  const gap = 6;
-  const chartW = width - paddingH * 2 - 30;
-
-  return (
-    <View style={{ alignItems: 'center' }}>
-      <Svg width={width} height={data.length * (barH + gap) + 8} style={{ overflow: 'visible' }}>
-        {data.map((d, i) => {
-          const y = i * (barH + gap);
-          const fillW = Math.max(4, (d.pct / 100) * chartW);
-          const barColor =
-            d.pct >= 80 ? colors.success
-            : d.pct >= 50 ? colors.primary
-            : d.pct >= 20 ? colors.warning
-            : colors.destructive + '88';
-
-          return (
-            <G key={i}>
-              <SvgText
-                x={paddingH - 4}
-                y={y + barH / 2 + 5}
-                fontSize={11}
-                fill={colors.mutedForeground}
-                textAnchor="end"
-              >
-                {d.label.slice(0, 3)}
-              </SvgText>
-              <Rect
-                x={paddingH}
-                y={y}
-                width={chartW}
-                height={barH}
-                rx={6}
-                fill={colors.border + '44'}
-              />
-              <Rect
-                x={paddingH}
-                y={y}
-                width={fillW}
-                height={barH}
-                rx={6}
-                fill={barColor}
-              />
-              <SvgText
-                x={paddingH + chartW + 8}
-                y={y + barH / 2 + 5}
-                fontSize={11}
-                fill={colors.mutedForeground}
-                textAnchor="start"
-              >
-                {d.pct}%
-              </SvgText>
-            </G>
-          );
-        })}
-      </Svg>
-    </View>
-  );
-}

@@ -1,25 +1,31 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
-  Habit, Category, HabitLog, AppSettings, DailyScore, LogStatus,
+  Habit, Category, HabitLog, AppSettings, DailyScore,
+  LogStatus, LifetimeStats, WeeklyStats, MonthlyStats, DailyStats, StreakFreeze,
 } from './types';
 import {
   formatDate, parseDate, getTodayStr, isHabitScheduledForDate,
-  getWeekStart, generateId,
+  getWeekStart, generateId, addDays, getMonthStr, WEEKDAY_SHORT,
 } from '@/utils/scheduling';
 import { getCurrentStreak, getLongestStreak } from '@/utils/streaks';
+import { runDailyReset } from '@/utils/dailyReset';
 
 const KEYS = {
   HABITS: '@fg:habits',
   CATEGORIES: '@fg:categories',
   LOGS: '@fg:logs',
   SETTINGS: '@fg:settings',
+  FREEZES: '@fg:freezes',
 };
 
 const DEFAULT_SETTINGS: AppSettings = {
   userName: '',
   monkModeEnabled: false,
-  streakFreezeUsedMonths: [],
+  notificationsEnabled: false,
+  lastResetDate: '',
+  lastWeeklyReviewDate: '',
+  theme: 'dark',
 };
 
 const DEFAULT_CATEGORIES: Category[] = [
@@ -33,12 +39,14 @@ interface HabitsContextType {
   habits: Habit[];
   categories: Category[];
   logs: HabitLog[];
+  freezes: StreakFreeze[];
   settings: AppSettings;
   isLoading: boolean;
-  createHabit: (data: Omit<Habit, 'id' | 'createdAt' | 'archived'>) => void;
+  createHabit: (data: Omit<Habit, 'id' | 'createdAt' | 'archived' | 'sortOrder'>) => void;
   updateHabit: (id: string, updates: Partial<Habit>) => void;
   deleteHabit: (id: string) => void;
   archiveHabit: (id: string) => void;
+  restoreHabit: (id: string) => void;
   createCategory: (data: Omit<Category, 'id' | 'order' | 'collapsed'>) => void;
   updateCategory: (id: string, updates: Partial<Category>) => void;
   deleteCategory: (id: string) => void;
@@ -47,13 +55,23 @@ interface HabitsContextType {
   markHabit: (habitId: string, date: string) => void;
   applyStreakFreeze: () => boolean;
   updateSettings: (updates: Partial<AppSettings>) => void;
+  resetAllData: () => Promise<void>;
   getHabitsForDate: (date: string) => Habit[];
   getLogForHabit: (habitId: string, date: string) => HabitLog | undefined;
   getDailyScore: (date: string) => DailyScore;
+  getDailyStats: (date: string) => DailyStats;
   getStreakData: (habitId: string) => { current: number; longest: number };
   getWeeklyTargetProgress: (habitId: string, weekStart: string) => { completed: number; target: number };
-  getCalendarDay: (date: string) => { color: 'none' | 'red' | 'yellow' | 'green'; completed: number; total: number };
+  getCalendarDay: (date: string) => { color: 'none' | 'red' | 'yellow' | 'green'; completed: number; total: number; missed: number; percentage: number; streak: number };
   canUseStreakFreeze: () => boolean;
+  getLifetimeStats: () => LifetimeStats;
+  getWeeklyStats: (weekStart: string) => WeeklyStats;
+  getMonthlyStats: (month: string) => MonthlyStats;
+  getWeeklyReview: () => WeeklyStats & { summary: string };
+  getLast7DaysData: () => Array<{ date: string; label: string; percentage: number; completed: number; total: number }>;
+  getHabitCompletionHistory: (habitId: string, days: number) => Array<{ date: string; completed: boolean }>;
+  getOverallConsistency: () => Array<{ date: string; color: 'none' | 'red' | 'yellow' | 'green' }>;
+  searchHabits: (query: string) => Habit[];
 }
 
 const HabitsContext = createContext<HabitsContextType | null>(null);
@@ -66,51 +84,61 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
   const [habits, setHabits] = useState<Habit[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [logs, setLogs] = useState<HabitLog[]>([]);
+  const [freezes, setFreezes] = useState<StreakFreeze[]>([]);
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
   const [isLoading, setIsLoading] = useState(true);
+  const resetRanRef = useRef(false);
 
   useEffect(() => {
     (async () => {
       try {
-        const [h, c, l, s] = await Promise.all([
+        const [h, c, l, s, f] = await Promise.all([
           AsyncStorage.getItem(KEYS.HABITS),
           AsyncStorage.getItem(KEYS.CATEGORIES),
           AsyncStorage.getItem(KEYS.LOGS),
           AsyncStorage.getItem(KEYS.SETTINGS),
+          AsyncStorage.getItem(KEYS.FREEZES),
         ]);
-        if (h) setHabits(JSON.parse(h));
-        if (c) {
-          setCategories(JSON.parse(c));
-        } else {
-          setCategories(DEFAULT_CATEGORIES);
-          save(KEYS.CATEGORIES, DEFAULT_CATEGORIES);
+        const loadedHabits: Habit[] = h ? JSON.parse(h) : [];
+        const loadedCategories: Category[] = c ? JSON.parse(c) : DEFAULT_CATEGORIES;
+        const loadedLogs: HabitLog[] = l ? JSON.parse(l) : [];
+        const loadedSettings: AppSettings = s ? { ...DEFAULT_SETTINGS, ...JSON.parse(s) } : DEFAULT_SETTINGS;
+        const loadedFreezes: StreakFreeze[] = f ? JSON.parse(f) : [];
+
+        if (!c) save(KEYS.CATEGORIES, DEFAULT_CATEGORIES);
+
+        if (!resetRanRef.current) {
+          resetRanRef.current = true;
+          const { newLogs, updatedSettings } = runDailyReset(loadedHabits, loadedLogs, loadedSettings);
+          setHabits(loadedHabits);
+          setCategories(loadedCategories);
+          setLogs(newLogs);
+          setSettings(updatedSettings);
+          setFreezes(loadedFreezes);
+          if (newLogs.length !== loadedLogs.length) save(KEYS.LOGS, newLogs);
+          if (updatedSettings.lastResetDate !== loadedSettings.lastResetDate) save(KEYS.SETTINGS, updatedSettings);
         }
-        if (l) setLogs(JSON.parse(l));
-        if (s) setSettings(JSON.parse(s));
-      } catch {}
+      } catch {
+        setCategories(DEFAULT_CATEGORIES);
+      }
       setIsLoading(false);
     })();
   }, []);
 
-  function setHabitsAndSave(h: Habit[]) {
-    setHabits(h);
-    save(KEYS.HABITS, h);
-  }
-  function setCatsAndSave(c: Category[]) {
-    setCategories(c);
-    save(KEYS.CATEGORIES, c);
-  }
-  function setLogsAndSave(l: HabitLog[]) {
-    setLogs(l);
-    save(KEYS.LOGS, l);
-  }
-  function setSettingsAndSave(s: AppSettings) {
-    setSettings(s);
-    save(KEYS.SETTINGS, s);
-  }
+  function setHabitsAndSave(h: Habit[]) { setHabits(h); save(KEYS.HABITS, h); }
+  function setCatsAndSave(c: Category[]) { setCategories(c); save(KEYS.CATEGORIES, c); }
+  function setLogsAndSave(l: HabitLog[]) { setLogs(l); save(KEYS.LOGS, l); }
+  function setSettingsAndSave(s: AppSettings) { setSettings(s); save(KEYS.SETTINGS, s); }
+  function setFreezesAndSave(f: StreakFreeze[]) { setFreezes(f); save(KEYS.FREEZES, f); }
 
-  function createHabit(data: Omit<Habit, 'id' | 'createdAt' | 'archived'>) {
-    const h: Habit = { ...data, id: generateId(), createdAt: getTodayStr(), archived: false };
+  function createHabit(data: Omit<Habit, 'id' | 'createdAt' | 'archived' | 'sortOrder'>) {
+    const h: Habit = {
+      ...data,
+      id: generateId(),
+      createdAt: getTodayStr(),
+      archived: false,
+      sortOrder: habits.length,
+    };
     setHabitsAndSave([...habits, h]);
   }
 
@@ -121,11 +149,11 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
   function deleteHabit(id: string) {
     setHabitsAndSave(habits.filter(h => h.id !== id));
     setLogsAndSave(logs.filter(l => l.habitId !== id));
+    setFreezesAndSave(freezes.filter(f => f.habitId !== id));
   }
 
-  function archiveHabit(id: string) {
-    updateHabit(id, { archived: true });
-  }
+  function archiveHabit(id: string) { updateHabit(id, { archived: true }); }
+  function restoreHabit(id: string) { updateHabit(id, { archived: false }); }
 
   function createCategory(data: Omit<Category, 'id' | 'order' | 'collapsed'>) {
     const c: Category = { ...data, id: generateId(), order: categories.length, collapsed: false };
@@ -138,15 +166,12 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
 
   function deleteCategory(id: string) {
     setCatsAndSave(categories.filter(c => c.id !== id));
-    setHabitsAndSave(habits.filter(h => h.categoryId !== id));
+    setHabitsAndSave(habits.map(h => h.categoryId === id ? { ...h, categoryId: '' } : h));
   }
 
   function reorderCategories(orderedIds: string[]) {
     const reordered = orderedIds
-      .map((id, index) => {
-        const cat = categories.find(c => c.id === id);
-        return cat ? { ...cat, order: index } : null;
-      })
+      .map((id, index) => { const cat = categories.find(c => c.id === id); return cat ? { ...cat, order: index } : null; })
       .filter((c): c is Category => c !== null);
     setCatsAndSave(reordered);
   }
@@ -156,45 +181,67 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
   }
 
   function markHabit(habitId: string, date: string) {
+    const today = getTodayStr();
+    if (date !== today) return;
     const existing = logs.find(l => l.habitId === habitId && l.date === date);
     if (existing) {
       if (existing.status === 'completed') {
         setLogsAndSave(logs.filter(l => !(l.habitId === habitId && l.date === date)));
       }
     } else {
-      const newLog: HabitLog = { id: generateId(), habitId, date, status: 'completed' };
+      const newLog: HabitLog = {
+        id: generateId(),
+        habitId,
+        date,
+        status: 'completed',
+        completedAt: new Date().toISOString(),
+      };
       setLogsAndSave([...logs, newLog]);
     }
   }
 
   function canUseStreakFreeze(): boolean {
-    const month = getTodayStr().substring(0, 7);
-    return !settings.streakFreezeUsedMonths.includes(month);
+    const month = getMonthStr(getTodayStr());
+    return !freezes.some(f => f.month === month);
   }
 
   function applyStreakFreeze(): boolean {
     if (!canUseStreakFreeze()) return false;
-    const month = getTodayStr().substring(0, 7);
+    const month = getMonthStr(getTodayStr());
     const today = getTodayStr();
-
     const habitsToday = habits.filter(h => !h.archived && isHabitScheduledForDate(h, today));
     const newLogs = [...logs];
     habitsToday.forEach(h => {
-      const existing = logs.find(l => l.habitId === h.id && l.date === today);
+      const existing = newLogs.find(l => l.habitId === h.id && l.date === today);
       if (!existing) {
         newLogs.push({ id: generateId(), habitId: h.id, date: today, status: 'frozen' });
       }
     });
-
     setLogsAndSave(newLogs);
-    const ns: AppSettings = { ...settings, streakFreezeUsedMonths: [...settings.streakFreezeUsedMonths, month] };
-    setSettingsAndSave(ns);
+    const newFreezes: StreakFreeze[] = [...freezes, { habitId: 'global', month, usedDate: today }];
+    setFreezesAndSave(newFreezes);
     return true;
   }
 
   function updateSettings(updates: Partial<AppSettings>) {
     const ns = { ...settings, ...updates };
     setSettingsAndSave(ns);
+  }
+
+  async function resetAllData(): Promise<void> {
+    await Promise.all([
+      AsyncStorage.removeItem(KEYS.HABITS),
+      AsyncStorage.removeItem(KEYS.CATEGORIES),
+      AsyncStorage.removeItem(KEYS.LOGS),
+      AsyncStorage.removeItem(KEYS.SETTINGS),
+      AsyncStorage.removeItem(KEYS.FREEZES),
+    ]);
+    setHabits([]);
+    setCategories(DEFAULT_CATEGORIES);
+    setLogs([]);
+    setSettings(DEFAULT_SETTINGS);
+    setFreezes([]);
+    save(KEYS.CATEGORIES, DEFAULT_CATEGORIES);
   }
 
   function getHabitsForDate(date: string): Habit[] {
@@ -207,12 +254,27 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
 
   function getDailyScore(date: string): DailyScore {
     const scheduled = getHabitsForDate(date);
-    if (scheduled.length === 0) return { completed: 0, total: 0, percentage: 0 };
-    const completed = scheduled.filter(h => {
+    if (scheduled.length === 0) return { completed: 0, total: 0, percentage: 0, missed: 0 };
+    const completed = scheduled.filter(h => getLogForHabit(h.id, date)?.status === 'completed').length;
+    const missed = scheduled.filter(h => {
       const log = getLogForHabit(h.id, date);
-      return log?.status === 'completed';
+      return log?.status === 'missed' || (date < getTodayStr() && !log);
     }).length;
-    return { completed, total: scheduled.length, percentage: Math.round((completed / scheduled.length) * 100) };
+    return { completed, total: scheduled.length, percentage: Math.round((completed / scheduled.length) * 100), missed };
+  }
+
+  function getDailyStats(date: string): DailyStats {
+    const score = getDailyScore(date);
+    const today = getTodayStr();
+    return {
+      date,
+      total: score.total,
+      completed: score.completed,
+      missed: score.missed,
+      completionPercent: score.percentage,
+      dailyScore: score.total > 0 ? Math.round((score.completed / score.total) * 100) : 0,
+      isLocked: date < today,
+    };
   }
 
   function getStreakData(habitId: string): { current: number; longest: number } {
@@ -230,33 +292,200 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
       const d = new Date(ws);
       d.setDate(d.getDate() + i);
       const ds = formatDate(d);
-      const log = getLogForHabit(habitId, ds);
-      if (log?.status === 'completed') completed++;
+      if (getLogForHabit(habitId, ds)?.status === 'completed') completed++;
     }
     return { completed, target: habit.weeklyTarget };
   }
 
-  function getCalendarDay(date: string): { color: 'none' | 'red' | 'yellow' | 'green'; completed: number; total: number } {
+  function getCalendarDay(date: string) {
     const today = getTodayStr();
-    if (date > today) return { color: 'none', completed: 0, total: 0 };
+    if (date > today) return { color: 'none' as const, completed: 0, total: 0, missed: 0, percentage: 0, streak: 0 };
     const scheduled = getHabitsForDate(date);
-    if (scheduled.length === 0) return { color: 'none', completed: 0, total: 0 };
+    if (scheduled.length === 0) return { color: 'none' as const, completed: 0, total: 0, missed: 0, percentage: 0, streak: 0 };
     const completed = scheduled.filter(h => {
       const log = getLogForHabit(h.id, date);
       return log?.status === 'completed' || log?.status === 'frozen';
     }).length;
-    const color = completed === 0 ? 'red' : completed < scheduled.length ? 'yellow' : 'green';
-    return { color, completed, total: scheduled.length };
+    const missed = scheduled.length - completed;
+    const percentage = Math.round((completed / scheduled.length) * 100);
+    const color = completed === 0 ? 'red' as const : completed < scheduled.length ? 'yellow' as const : 'green' as const;
+    const streak = scheduled.reduce((max, h) => Math.max(max, getCurrentStreak(h, logs)), 0);
+    return { color, completed, total: scheduled.length, missed, percentage, streak };
+  }
+
+  function getLifetimeStats(): LifetimeStats {
+    const activeHabits = habits.filter(h => !h.archived);
+    const allScheduledLogs = logs.filter(l => l.status !== 'missed');
+    const totalCompleted = logs.filter(l => l.status === 'completed').length;
+    const totalMissed = logs.filter(l => l.status === 'missed').length;
+    const totalScheduled = totalCompleted + totalMissed + logs.filter(l => l.status === 'frozen').length;
+    const longestEverStreak = activeHabits.reduce((max, h) => Math.max(max, getLongestStreak(h, logs)), 0);
+    const currentBestStreak = activeHabits.reduce((max, h) => Math.max(max, getCurrentStreak(h, logs)), 0);
+    const activeDays = new Set(allScheduledLogs.map(l => l.date)).size;
+    return {
+      totalCompleted,
+      totalMissed,
+      totalScheduled,
+      overallCompletion: totalScheduled > 0 ? Math.round((totalCompleted / totalScheduled) * 100) : 0,
+      longestEverStreak,
+      currentBestStreak,
+      activeDays,
+      habitsCreated: habits.length,
+    };
+  }
+
+  function getWeeklyStats(weekStart: string): WeeklyStats {
+    const weekEnd = addDays(weekStart, 6);
+    const activeHabits = habits.filter(h => !h.archived);
+    let totalScheduled = 0, completed = 0, missed = 0;
+    const habitCompletions: Record<string, number> = {};
+    const habitScheduled: Record<string, number> = {};
+
+    for (let i = 0; i < 7; i++) {
+      const date = addDays(weekStart, i);
+      activeHabits.forEach(h => {
+        if (isHabitScheduledForDate(h, date)) {
+          totalScheduled++;
+          habitScheduled[h.id] = (habitScheduled[h.id] || 0) + 1;
+          const log = getLogForHabit(h.id, date);
+          if (log?.status === 'completed') { completed++; habitCompletions[h.id] = (habitCompletions[h.id] || 0) + 1; }
+          else if (log?.status === 'missed') missed++;
+        }
+      });
+    }
+
+    const sortedByCompletion = Object.keys(habitCompletions).sort((a, b) => {
+      const rateA = (habitCompletions[a] || 0) / (habitScheduled[a] || 1);
+      const rateB = (habitCompletions[b] || 0) / (habitScheduled[b] || 1);
+      return rateB - rateA;
+    });
+
+    const longestStreak = activeHabits.reduce((max, h) => Math.max(max, getLongestStreak(h, logs)), 0);
+
+    return {
+      weekStart,
+      weekEnd,
+      totalScheduled,
+      completed,
+      missed,
+      completionPercent: totalScheduled > 0 ? Math.round((completed / totalScheduled) * 100) : 0,
+      bestHabitId: sortedByCompletion[0] || '',
+      worstHabitId: sortedByCompletion[sortedByCompletion.length - 1] || '',
+      longestStreak,
+      averageCompletion: activeHabits.length > 0
+        ? Math.round(Object.values(habitCompletions).reduce((s, v) => s + v, 0) / activeHabits.length)
+        : 0,
+    };
+  }
+
+  function getMonthlyStats(month: string): MonthlyStats {
+    const [year, monthNum] = month.split('-').map(Number);
+    const daysInMonth = new Date(year, monthNum, 0).getDate();
+    const activeHabits = habits.filter(h => !h.archived);
+    let totalScheduled = 0, completed = 0, missed = 0;
+    const habitCompletions: Record<string, number> = {};
+    const habitScheduled: Record<string, number> = {};
+
+    for (let day = 1; day <= daysInMonth; day++) {
+      const date = `${month}-${String(day).padStart(2, '0')}`;
+      activeHabits.forEach(h => {
+        if (isHabitScheduledForDate(h, date)) {
+          totalScheduled++;
+          habitScheduled[h.id] = (habitScheduled[h.id] || 0) + 1;
+          const log = getLogForHabit(h.id, date);
+          if (log?.status === 'completed') { completed++; habitCompletions[h.id] = (habitCompletions[h.id] || 0) + 1; }
+          else if (log?.status === 'missed') missed++;
+        }
+      });
+    }
+
+    const sortedByRate = Object.keys(habitScheduled).sort((a, b) => {
+      const rateA = (habitCompletions[a] || 0) / (habitScheduled[a] || 1);
+      const rateB = (habitCompletions[b] || 0) / (habitScheduled[b] || 1);
+      return rateB - rateA;
+    });
+
+    return {
+      month,
+      totalScheduled,
+      completed,
+      missed,
+      completionPercent: totalScheduled > 0 ? Math.round((completed / totalScheduled) * 100) : 0,
+      mostConsistentHabitId: sortedByRate[0] || '',
+      leastConsistentHabitId: sortedByRate[sortedByRate.length - 1] || '',
+    };
+  }
+
+  function getWeeklyReview(): WeeklyStats & { summary: string } {
+    const today = new Date();
+    const lastSunday = new Date(today);
+    lastSunday.setDate(today.getDate() - today.getDay() - 7);
+    const weekStart = formatDate(lastSunday);
+    const stats = getWeeklyStats(weekStart);
+    const { completionPercent } = stats;
+    let summary = '';
+    if (completionPercent >= 90) summary = 'Outstanding week! You showed up when it mattered.';
+    else if (completionPercent >= 70) summary = 'Solid effort this week. Keep the momentum.';
+    else if (completionPercent >= 50) summary = 'You made progress. Next week, push harder.';
+    else summary = 'Rough week. Reset and recommit. Tomorrow starts now.';
+    return { ...stats, summary };
+  }
+
+  function getLast7DaysData() {
+    return Array.from({ length: 7 }, (_, i) => {
+      const date = addDays(getTodayStr(), i - 6);
+      const score = getDailyScore(date);
+      const d = parseDate(date);
+      return {
+        date,
+        label: WEEKDAY_SHORT[d.getDay()],
+        percentage: score.percentage,
+        completed: score.completed,
+        total: score.total,
+      };
+    });
+  }
+
+  function getHabitCompletionHistory(habitId: string, days: number) {
+    const today = getTodayStr();
+    return Array.from({ length: days }, (_, i) => {
+      const date = addDays(today, i - days + 1);
+      const log = getLogForHabit(habitId, date);
+      return { date, completed: log?.status === 'completed' || log?.status === 'frozen' };
+    });
+  }
+
+  function getOverallConsistency() {
+    const today = getTodayStr();
+    return Array.from({ length: 90 }, (_, i) => {
+      const date = addDays(today, i - 89);
+      const { color } = getCalendarDay(date);
+      return { date, color };
+    });
+  }
+
+  function searchHabits(query: string): Habit[] {
+    if (!query.trim()) return habits.filter(h => !h.archived);
+    const q = query.toLowerCase();
+    return habits.filter(h =>
+      !h.archived && (
+        h.name.toLowerCase().includes(q) ||
+        h.description?.toLowerCase().includes(q) ||
+        h.notes?.toLowerCase().includes(q)
+      ),
+    );
   }
 
   return (
     <HabitsContext.Provider value={{
-      habits, categories, logs, settings, isLoading,
-      createHabit, updateHabit, deleteHabit, archiveHabit,
+      habits, categories, logs, freezes, settings, isLoading,
+      createHabit, updateHabit, deleteHabit, archiveHabit, restoreHabit,
       createCategory, updateCategory, deleteCategory, reorderCategories, toggleCategoryCollapsed,
-      markHabit, applyStreakFreeze, updateSettings,
-      getHabitsForDate, getLogForHabit, getDailyScore, getStreakData,
-      getWeeklyTargetProgress, getCalendarDay, canUseStreakFreeze,
+      markHabit, applyStreakFreeze, updateSettings, resetAllData,
+      getHabitsForDate, getLogForHabit, getDailyScore, getDailyStats,
+      getStreakData, getWeeklyTargetProgress, getCalendarDay, canUseStreakFreeze,
+      getLifetimeStats, getWeeklyStats, getMonthlyStats, getWeeklyReview,
+      getLast7DaysData, getHabitCompletionHistory, getOverallConsistency, searchHabits,
     }}>
       {children}
     </HabitsContext.Provider>

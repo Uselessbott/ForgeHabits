@@ -1,51 +1,46 @@
 export const MOTIVATIONAL_QUOTES = [
-  'You can do it.',
-  'Keep moving forward.',
-  'One more day.',
-  'Stay consistent.',
-  'Discipline over motivation.',
-  'Small actions compound.',
-  'Build yourself daily.',
-  'The best time to start was yesterday. The second best time is now.',
-  'Every day is a new opportunity.',
-  'Progress, not perfection.',
-  'Hard work beats talent when talent doesn\'t work hard.',
-  'Your habits define your future.',
-  'One percent better every day.',
-  'Champions are built when no one\'s watching.',
-  'Pain is temporary. Giving up lasts forever.',
-  'The secret is to start.',
-  'Push through the resistance.',
-  'Forge yourself daily.',
-  'Today\'s choices are tomorrow\'s results.',
-  'Be harder to stop than to start.',
-  'Consistency is the foundation of mastery.',
-  'Show up. Every single day.',
-  'The grind never stops.',
-  'Earn it.',
-  'You are what you repeatedly do.',
+  'Discipline is choosing between what you want now and what you want most.',
+  'We are what we repeatedly do. Excellence, then, is not an act but a habit.',
+  'The only bad workout is the one that didn\'t happen.',
+  'Small daily improvements over time lead to stunning results.',
+  'Motivation gets you started. Habit keeps you going.',
+  'Don\'t count the days. Make the days count.',
+  'Success is the sum of small efforts repeated day in and day out.',
+  'The secret of your future is hidden in your daily routine.',
+  'You don\'t rise to the level of your goals. You fall to the level of your systems.',
+  'Consistency is the true foundation of trust.',
+  'It\'s not about being perfect. It\'s about making progress.',
+  'Win the morning, win the day.',
+  'Suffer the pain of discipline or suffer the pain of regret.',
+  'Hard choices, easy life. Easy choices, hard life.',
+  'One day or day one. You decide.',
+  'A year from now you\'ll wish you had started today.',
+  'The man who moves a mountain begins by carrying away small stones.',
+  'Strength does not come from physical capacity. It comes from an indomitable will.',
+  'Champions don\'t create habits during the season. Habits create champions.',
+  'Every action you take is a vote for the type of person you wish to become.',
+  'The difference between who you are and who you want to be is what you do.',
+  'Forge yourself daily. No shortcuts. No excuses.',
+  'Discipline is the bridge between goals and accomplishment.',
+  'You have to be willing to do the things today others won\'t, to have the things tomorrow others won\'t.',
+  'Push yourself because no one else is going to do it for you.',
+  'Great things never come from comfort zones.',
+  'Dream it. Wish it. Do it.',
+  'Success doesn\'t just find you. You have to go out and get it.',
+  'The harder you work for something, the greater you\'ll feel when you achieve it.',
+  'Don\'t stop when you\'re tired. Stop when you\'re done.',
+  'Wake up with determination. Go to bed with satisfaction.',
+  'Do something today that your future self will thank you for.',
+  'Little by little, a little becomes a lot.',
+  'It always seems impossible until it\'s done.',
+  'Focus on progress, not perfection.',
+  'You are one decision away from a completely different life.',
+  'The body achieves what the mind believes.',
+  'Make each day your masterpiece.',
+  'Either you run the day, or the day runs you.',
 ];
 
 export function getDailyQuote(): string {
-  const now = new Date();
-  const start = new Date(now.getFullYear(), 0, 0);
-  const diff = now.getTime() - start.getTime();
-  const dayOfYear = Math.floor(diff / 86400000);
-  return MOTIVATIONAL_QUOTES[dayOfYear % MOTIVATIONAL_QUOTES.length];
-}
-
-export function getGreeting(name: string): string {
-  const hour = new Date().getHours();
-  const prefix = name ? `${name}, ` : '';
-  if (hour < 12) return `${prefix}good morning.`;
-  if (hour < 17) return `${prefix}good afternoon.`;
-  return `${prefix}good evening.`;
-}
-
-export function getMotivationalGreeting(name: string, remaining: number, streak: number): string {
-  const n = name || 'Champion';
-  if (remaining === 0) return `${n}, all done today. 🎯`;
-  if (streak > 7) return `${n}, keep the streak alive. 🔥`;
-  if (remaining === 1) return `${n}, one task left.`;
-  return `${n}, ${remaining} tasks remain.`;
+  const day = new Date().getDate() + new Date().getMonth() * 31;
+  return MOTIVATIONAL_QUOTES[day % MOTIVATIONAL_QUOTES.length];
 }
