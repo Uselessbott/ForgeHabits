@@ -417,27 +417,4 @@ const styles = StyleSheet.create({
   emptyText: { fontSize: 14, fontFamily: 'Inter_400Regular', textAlign: 'center' },
   emptyTitle: { fontSize: 17, fontFamily: 'Inter_600SemiBold', marginBottom: 6 },
   emptyDesc: { fontSize: 14, fontFamily: 'Inter_400Regular' },
-  FrequencyBadge: {},
 });
-
-function FrequencyBadge({ habit }: { habit: Habit }) {
-  const colors = useColors();
-  const labels: Record<string, string> = {
-    daily: 'Daily',
-    weekly_target: `${habit.weeklyTarget}×/wk`,
-    monthly: 'Monthly',
-    weekly: (() => {
-      const days = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
-      return (habit.weekdays ?? []).map(d => days[d]).join(' ') || 'Weekly';
-    })(),
-  };
-  const bgColors: Record<string, string> = { daily: '#E05A1A22', weekly: '#8B5CF622', weekly_target: '#06B6D422', monthly: '#10B98122' };
-  const textColors: Record<string, string> = { daily: '#E05A1A', weekly: '#A78BFA', weekly_target: '#22D3EE', monthly: '#34D399' };
-  return (
-    <View style={[styles.badge, { backgroundColor: bgColors[habit.frequency] || colors.card }]}>
-      <Text style={[styles.badgeText, { color: textColors[habit.frequency] || colors.mutedForeground }]}>
-        {labels[habit.frequency]}
-      </Text>
-    </View>
-  );
-}
