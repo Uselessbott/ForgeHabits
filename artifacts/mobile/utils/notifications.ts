@@ -12,6 +12,24 @@ Notifications.setNotificationHandler({
   }),
 });
 
+export async function setupNotificationChannel(): Promise<void> {
+  if (Platform.OS === 'android') {
+    await Notifications.setNotificationChannelAsync('default', {
+      name: 'Habit Reminders',
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 250, 250, 250],
+      sound: 'default',
+      enableLights: true,
+      lightColor: '#FF6B00',
+    });
+    await Notifications.setNotificationChannelAsync('monk_mode', {
+      name: 'Monk Mode',
+      importance: Notifications.AndroidImportance.HIGH,
+      sound: 'default',
+    });
+  }
+}
+
 export async function requestNotificationPermissions(): Promise<boolean> {
   if (Platform.OS === 'web') return false;
   const { status: existingStatus } = await Notifications.getPermissionsAsync();
@@ -35,14 +53,18 @@ export async function scheduleHabitReminder(habit: Habit): Promise<void> {
           title: `${habit.emoji} ${habit.name}`,
           body: habit.description || 'Time to forge your habit!',
           data: { habitId: habit.id },
+          sound: 'default',
         },
         trigger: {
           type: Notifications.SchedulableTriggerInputTypes.DAILY,
           hour,
           minute,
+          channelId: 'default',
         },
       });
-    } catch {}
+    } catch (error) {
+      console.warn(`Failed to schedule reminder for habit ${habit.id}:`, error);
+    }
   }
 }
 
@@ -51,7 +73,9 @@ export async function cancelHabitReminders(habitId: string): Promise<void> {
     const scheduled = await Notifications.getAllScheduledNotificationsAsync();
     const toCancel = scheduled.filter(n => n.identifier.startsWith(`habit_${habitId}_`));
     await Promise.all(toCancel.map(n => Notifications.cancelScheduledNotificationAsync(n.identifier)));
-  } catch {}
+  } catch (error) {
+    console.warn('Failed to cancel habit reminders:', error);
+  }
 }
 
 export async function scheduleMonkModeNotification(remaining: number): Promise<void> {
@@ -61,20 +85,27 @@ export async function scheduleMonkModeNotification(remaining: number): Promise<v
       identifier: 'monk_mode',
       content: {
         title: '🔥 Monk Mode Active',
-        body: remaining > 0 ? `${remaining} habit${remaining > 1 ? 's' : ''} remaining today. Stay focused.` : 'All habits complete! Outstanding discipline.',
+        body: remaining > 0
+          ? `${remaining} habit${remaining > 1 ? 's' : ''} remaining today. Stay focused.`
+          : 'All habits complete! Outstanding discipline.',
         sticky: Platform.OS === 'android',
         data: { type: 'monk_mode' },
+        sound: 'default',
       },
       trigger: null,
     });
-  } catch {}
+  } catch (error) {
+    console.warn('Failed to schedule monk mode notification:', error);
+  }
 }
 
 export async function cancelMonkModeNotification(): Promise<void> {
   try {
     await Notifications.cancelScheduledNotificationAsync('monk_mode');
     await Notifications.dismissNotificationAsync('monk_mode');
-  } catch {}
+  } catch (error) {
+    console.warn('Failed to cancel monk mode notification:', error);
+  }
 }
 
 export async function scheduleMidnightReset(): Promise<void> {
@@ -86,14 +117,18 @@ export async function scheduleMidnightReset(): Promise<void> {
         title: '🌅 New Day, New Discipline',
         body: 'Your habits have reset. Start strong.',
         data: { type: 'reset' },
+        sound: 'default',
       },
       trigger: {
         type: Notifications.SchedulableTriggerInputTypes.DAILY,
         hour: 0,
         minute: 0,
+        channelId: 'default',
       },
     });
-  } catch {}
+  } catch (error) {
+    console.warn('Failed to schedule midnight reset:', error);
+  }
 }
 
 export async function cancelAllHabitReminders(habits: Habit[]): Promise<void> {
