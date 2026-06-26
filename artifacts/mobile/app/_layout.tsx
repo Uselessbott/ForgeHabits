@@ -14,6 +14,12 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { HabitsProvider } from '@/context/HabitsContext';
+import {
+  setupNotificationChannel,
+  requestNotificationPermissions,
+  scheduleMidnightReset,
+} from '@/utils/notifications';
+import '../widgets';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -56,6 +62,16 @@ export default function RootLayout() {
       SplashScreen.hideAsync();
     }
   }, [fontsLoaded, fontError]);
+
+  useEffect(() => {
+    setupNotificationChannel().then(() => {
+      requestNotificationPermissions().then(granted => {
+        if (granted) {
+          scheduleMidnightReset();
+        }
+      });
+    });
+  }, []);
 
   if (!fontsLoaded && !fontError) return null;
 
