@@ -1,13 +1,9 @@
-import { registerRootComponent } from 'expo';
+import 'expo-router/entry';
 import { registerWidgetTaskHandler } from 'react-native-android-widget';
-
-import App from './app/_layout';
-import { ForgeHabitsWidget } from './widgets/ForgeHabitsWidget';
 
 registerWidgetTaskHandler(async ({ widgetName, renderWidget }) => {
   if (widgetName === 'ForgeHabitsWidget') {
+    const { ForgeHabitsWidget } = require('./widgets/ForgeHabitsWidget');
     await renderWidget(<ForgeHabitsWidget />);
   }
 });
-
-registerRootComponent(App);

@@ -19,7 +19,6 @@ import {
   requestNotificationPermissions,
   scheduleMidnightReset,
 } from '@/utils/notifications';
-import '../widgets';
 
 SplashScreen.preventAutoHideAsync();
 

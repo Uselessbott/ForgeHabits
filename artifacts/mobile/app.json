@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "ForgeHabits",
-    "slug": "mobile",
+    "slug": "ForgeHabits",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -65,7 +65,7 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "e7543d85-3bd8-4775-88bf-270640313076"
+        "projectId": "55f5f586-09f2-43e6-91f4-8c311962535e"
       }
     },
     "experiments": {
