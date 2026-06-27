@@ -3,7 +3,7 @@ import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Platform } from '
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColors } from '@/hooks/useColors';
 import { useHabits } from '@/context/HabitsContext';
-import { getTodayStr, getWeekStart, addDays, MONTH_NAMES, parseDate } from '@/utils/scheduling';
+import { getTodayStr, getWeekStart, addDays, parseDate } from '@/utils/scheduling';
 import { WeeklyBarChart, MonthlyLineChart, PieChart } from '@/components/Charts';
 
 type Tab = 'daily' | 'weekly' | 'monthly' | 'lifetime';
@@ -12,7 +12,7 @@ export default function InsightsScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const {
-    habits, getDailyStats, getWeeklyStats, getMonthlyStats, getLifetimeStats,
+    habits, logs, getDailyStats, getWeeklyStats, getMonthlyStats, getLifetimeStats,
     getLast7DaysData, getStreakData, getCalendarDay,
   } = useHabits();
   const [tab, setTab] = useState<Tab>('daily');
@@ -22,11 +22,12 @@ export default function InsightsScreen() {
   const month = today.substring(0, 7);
   const topInset = insets.top + (Platform.OS === 'web' ? 67 : 0);
 
-  const dailyStats = useMemo(() => getDailyStats(today), [today]);
-  const weeklyStats = useMemo(() => getWeeklyStats(weekStart), [weekStart]);
-  const monthlyStats = useMemo(() => getMonthlyStats(month), [month]);
-  const lifetimeStats = useMemo(() => getLifetimeStats(), []);
-  const last7Days = useMemo(() => getLast7DaysData(), [today]);
+  // logs added as dependency so stats recompute when habits are marked
+  const dailyStats = useMemo(() => getDailyStats(today), [today, logs]);
+  const weeklyStats = useMemo(() => getWeeklyStats(weekStart), [weekStart, logs]);
+  const monthlyStats = useMemo(() => getMonthlyStats(month), [month, logs]);
+  const lifetimeStats = useMemo(() => getLifetimeStats(), [logs]);
+  const last7Days = useMemo(() => getLast7DaysData(), [today, logs]);
 
   const activeHabits = habits.filter(h => !h.archived);
 
@@ -40,12 +41,11 @@ export default function InsightsScreen() {
     return activeHabits.find(h => h.id === weeklyStats.worstHabitId);
   }, [weeklyStats, activeHabits]);
 
-  const nowDate = parseDate(today);
-  const monthDays = Array.from({ length: 30 }, (_, i) => {
+  const monthDays = useMemo(() => Array.from({ length: 30 }, (_, i) => {
     const date = addDays(today, i - 29);
     const d = getCalendarDay(date);
     return d.percentage;
-  });
+  }), [today, logs]);
 
   const tabs: { key: Tab; label: string }[] = [
     { key: 'daily', label: 'Today' },
