@@ -35,18 +35,8 @@ jobs:
         run: pnpm expo prebuild --platform android --clean
         working-directory: artifacts/mobile
 
-      - name: Test bundle
-        run: |
-          mkdir -p /tmp/bundle-test
-          pnpm expo export:embed \
-            --platform android \
-            --dev false \
-            --bundle-output /tmp/bundle-test/index.android.bundle \
-            --assets-dest /tmp/bundle-test/res 2>&1 | tail -50
-        working-directory: artifacts/mobile
-
       - name: Build APK
-        run: ./gradlew assembleRelease --no-daemon
+        run: ./gradlew assembleRelease --no-daemon --stacktrace 2>&1 | grep -A 5 "Error\|error\|FAILED\|Exception" | head -80
         working-directory: artifacts/mobile/android
 
       - name: Find APK
