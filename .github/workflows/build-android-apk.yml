@@ -36,11 +36,17 @@ jobs:
         working-directory: artifacts/mobile
 
       - name: Bundle JS
-        run: pnpm expo export:embed --platform android --dev false
+        run: |
+          mkdir -p android/app/src/main/assets
+          pnpm expo export:embed \
+            --platform android \
+            --dev false \
+            --bundle-output android/app/src/main/assets/index.android.bundle \
+            --assets-dest android/app/src/main/res
         working-directory: artifacts/mobile
 
       - name: Build APK
-        run: ./gradlew assembleRelease --no-daemon --stacktrace
+        run: ./gradlew assembleRelease --no-daemon
         working-directory: artifacts/mobile/android
 
       - name: Upload APK
