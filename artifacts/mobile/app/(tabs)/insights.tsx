@@ -3,7 +3,7 @@ import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Platform } from '
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColors } from '@/hooks/useColors';
 import { useHabits } from '@/context/HabitsContext';
-import { getTodayStr, getWeekStart, addDays, parseDate } from '@/utils/scheduling';
+import { getTodayStr, getWeekStart, addDays } from '@/utils/scheduling';
 import { WeeklyBarChart, MonthlyLineChart, PieChart } from '@/components/Charts';
 
 type Tab = 'daily' | 'weekly' | 'monthly' | 'lifetime';
@@ -22,7 +22,6 @@ export default function InsightsScreen() {
   const month = today.substring(0, 7);
   const topInset = insets.top + (Platform.OS === 'web' ? 67 : 0);
 
-  // logs added as dependency so stats recompute when habits are marked
   const dailyStats = useMemo(() => getDailyStats(today), [today, logs]);
   const weeklyStats = useMemo(() => getWeeklyStats(weekStart), [weekStart, logs]);
   const monthlyStats = useMemo(() => getMonthlyStats(month), [month, logs]);
@@ -62,7 +61,6 @@ export default function InsightsScreen() {
       >
         <Text style={[styles.title, { color: colors.foreground }]}>Insights</Text>
 
-        {/* Tab Bar */}
         <View style={[styles.tabBar, { backgroundColor: colors.card, borderColor: colors.border }]}>
           {tabs.map(t => (
             <TouchableOpacity
@@ -76,7 +74,6 @@ export default function InsightsScreen() {
           ))}
         </View>
 
-        {/* DAILY TAB */}
         {tab === 'daily' && (
           <>
             <StatCard
@@ -88,21 +85,19 @@ export default function InsightsScreen() {
                 { label: 'Score', value: `${dailyStats.completionPercent}%`, color: colors.primary },
               ]}
             />
-
             {dailyStats.total > 0 && (
               <PieChart
                 colors={colors}
                 completed={dailyStats.completed}
                 missed={dailyStats.missed}
+                total={dailyStats.total}
                 title="Today's Completion"
               />
             )}
-
             <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>LAST 7 DAYS</Text>
             <View style={[styles.chartCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
               <WeeklyBarChart data={last7Days} colors={colors} />
             </View>
-
             <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>TODAY'S HABITS</Text>
             {activeHabits.map(h => {
               const { current, longest } = getStreakData(h.id);
@@ -124,7 +119,6 @@ export default function InsightsScreen() {
           </>
         )}
 
-        {/* WEEKLY TAB */}
         {tab === 'weekly' && (
           <>
             <StatCard
@@ -136,16 +130,19 @@ export default function InsightsScreen() {
                 { label: 'Rate', value: `${weeklyStats.completionPercent}%`, color: colors.primary },
               ]}
             />
-
             <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>DAILY COMPLETION THIS WEEK</Text>
             <View style={[styles.chartCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
               <WeeklyBarChart data={last7Days} colors={colors} />
             </View>
-
             {weeklyStats.totalScheduled > 0 && (
-              <PieChart colors={colors} completed={weeklyStats.completed} missed={weeklyStats.missed} title="Weekly Breakdown" />
+              <PieChart
+                colors={colors}
+                completed={weeklyStats.completed}
+                missed={weeklyStats.missed}
+                total={weeklyStats.totalScheduled}
+                title="Weekly Breakdown"
+              />
             )}
-
             <View style={styles.row}>
               {bestHabit && (
                 <View style={[styles.halfCard, { backgroundColor: colors.card, borderColor: '#22c55e33' }]}>
@@ -162,7 +159,6 @@ export default function InsightsScreen() {
                 </View>
               )}
             </View>
-
             <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>WEEKLY STREAKS</Text>
             {activeHabits.slice(0, 10).map(h => {
               const { current, longest } = getStreakData(h.id);
@@ -184,7 +180,6 @@ export default function InsightsScreen() {
           </>
         )}
 
-        {/* MONTHLY TAB */}
         {tab === 'monthly' && (
           <>
             <StatCard
@@ -196,16 +191,19 @@ export default function InsightsScreen() {
                 { label: 'Rate', value: `${monthlyStats.completionPercent}%`, color: colors.primary },
               ]}
             />
-
             <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>30-DAY TREND</Text>
             <View style={[styles.chartCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
               <MonthlyLineChart data={monthDays} colors={colors} />
             </View>
-
             {monthlyStats.totalScheduled > 0 && (
-              <PieChart colors={colors} completed={monthlyStats.completed} missed={monthlyStats.missed} title="Monthly Breakdown" />
+              <PieChart
+                colors={colors}
+                completed={monthlyStats.completed}
+                missed={monthlyStats.missed}
+                total={monthlyStats.totalScheduled}
+                title="Monthly Breakdown"
+              />
             )}
-
             {(() => {
               const most = activeHabits.find(h => h.id === monthlyStats.mostConsistentHabitId);
               const least = activeHabits.find(h => h.id === monthlyStats.leastConsistentHabitId);
@@ -231,14 +229,12 @@ export default function InsightsScreen() {
           </>
         )}
 
-        {/* LIFETIME TAB */}
         {tab === 'lifetime' && (
           <>
             <View style={[styles.bigStatCard, { backgroundColor: colors.primary + '18', borderColor: colors.primary + '33' }]}>
               <Text style={[styles.bigStatNum, { color: colors.primary }]}>{lifetimeStats.overallCompletion}%</Text>
               <Text style={[styles.bigStatLabel, { color: colors.mutedForeground }]}>Overall Completion Rate</Text>
             </View>
-
             <StatCard
               colors={colors}
               items={[
@@ -248,7 +244,6 @@ export default function InsightsScreen() {
                 { label: '💪 Habits', value: lifetimeStats.habitsCreated, color: colors.primary },
               ]}
             />
-
             <View style={styles.row}>
               <View style={[styles.halfCard, { backgroundColor: colors.card, borderColor: colors.primary + '33' }]}>
                 <Text style={[styles.halfCardLabel, { color: colors.mutedForeground }]}>LONGEST STREAK EVER</Text>
@@ -261,11 +256,14 @@ export default function InsightsScreen() {
                 <Text style={[styles.halfCardName, { color: colors.mutedForeground }]}>days 🔥</Text>
               </View>
             </View>
-
             {lifetimeStats.totalCompleted + lifetimeStats.totalMissed > 0 && (
-              <PieChart colors={colors} completed={lifetimeStats.totalCompleted} missed={lifetimeStats.totalMissed} title="All-Time Ratio" />
+              <PieChart
+                colors={colors}
+                completed={lifetimeStats.totalCompleted}
+                missed={lifetimeStats.totalMissed}
+                title="All-Time Ratio"
+              />
             )}
-
             <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>ALL HABITS — LIFETIME STREAKS</Text>
             {activeHabits.map(h => {
               const { current, longest } = getStreakData(h.id);

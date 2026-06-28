@@ -5,10 +5,6 @@ import Svg, {
 } from 'react-native-svg';
 import { useColors } from '@/hooks/useColors';
 
-// ─────────────────────────────────────────────────────────────────
-// 7-Day Bar Chart
-// data items: { date, label, percentage, completed, total }
-// ─────────────────────────────────────────────────────────────────
 interface BarDayItem {
   date: string;
   label: string;
@@ -76,9 +72,6 @@ export function WeeklyBarChart({ data, colors, height = 160 }: WeeklyBarChartPro
   );
 }
 
-// ─────────────────────────────────────────────────────────────────
-// Monthly Line Chart — accepts an array of percentage numbers (0-100)
-// ─────────────────────────────────────────────────────────────────
 interface MonthlyLineChartProps {
   data: number[];
   colors: any;
@@ -140,19 +133,17 @@ export function MonthlyLineChart({ data, colors, height = 140 }: MonthlyLineChar
   );
 }
 
-// ─────────────────────────────────────────────────────────────────
-// Pie / Donut Chart
-// ─────────────────────────────────────────────────────────────────
 interface PieChartProps {
   completed: number;
   missed: number;
+  total?: number;
   title: string;
   colors: any;
   size?: number;
 }
 
-export function PieChart({ completed, missed, title, colors, size = 120 }: PieChartProps) {
-  const total = completed + missed;
+export function PieChart({ completed, missed, total: totalProp, title, colors, size = 120 }: PieChartProps) {
+  const total = totalProp ?? (completed + missed);
   if (total === 0) return null;
 
   const cx = size / 2;
@@ -160,10 +151,13 @@ export function PieChart({ completed, missed, title, colors, size = 120 }: PieCh
   const r = size / 2 - 10;
   const strokeW = 22;
   const completionPct = completed / total;
-
   const circumference = 2 * Math.PI * r;
-  const completedArc = circumference * completionPct;
-  const missedArc = circumference * (1 - completionPct);
+  const completedAngle = completionPct * 360;
+
+  function polarToCart(cx: number, cy: number, r: number, angleDeg: number) {
+    const rad = ((angleDeg - 90) * Math.PI) / 180;
+    return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+  }
 
   function describeArc(startAngle: number, endAngle: number): string {
     const start = polarToCart(cx, cy, r, startAngle);
@@ -172,22 +166,13 @@ export function PieChart({ completed, missed, title, colors, size = 120 }: PieCh
     return `M ${start.x} ${start.y} A ${r} ${r} 0 ${largeArc} 1 ${end.x} ${end.y}`;
   }
 
-  function polarToCart(cx: number, cy: number, r: number, angleDeg: number) {
-    const rad = ((angleDeg - 90) * Math.PI) / 180;
-    return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
-  }
-
-  const completedAngle = completionPct * 360;
-
   return (
     <View style={[pieStyles.container, { backgroundColor: colors.card, borderColor: colors.border }]}>
       <Text style={[pieStyles.title, { color: colors.mutedForeground }]}>{title.toUpperCase()}</Text>
       <View style={pieStyles.content}>
         <View style={{ position: 'relative', width: size, height: size }}>
           <Svg width={size} height={size}>
-            {/* Background circle */}
             <Circle cx={cx} cy={cy} r={r} fill="none" stroke={colors.border} strokeWidth={strokeW} />
-            {/* Completed arc */}
             {completedAngle > 0 && completedAngle < 360 && (
               <Path
                 d={describeArc(0, completedAngle)}
@@ -200,7 +185,6 @@ export function PieChart({ completed, missed, title, colors, size = 120 }: PieCh
             {completedAngle >= 360 && (
               <Circle cx={cx} cy={cy} r={r} fill="none" stroke="#22c55e" strokeWidth={strokeW} />
             )}
-            {/* Missed arc */}
             {completedAngle > 0 && completedAngle < 360 && (
               <Path
                 d={describeArc(completedAngle, 360)}
@@ -211,7 +195,6 @@ export function PieChart({ completed, missed, title, colors, size = 120 }: PieCh
               />
             )}
           </Svg>
-          {/* Center text */}
           <View style={[pieStyles.centerText, { width: size, height: size }]}>
             <Text style={[pieStyles.centerPct, { color: colors.foreground }]}>{Math.round(completionPct * 100)}%</Text>
           </View>
@@ -257,9 +240,6 @@ const pieStyles = StyleSheet.create({
   legendLabel: { fontSize: 11, fontFamily: 'Inter_400Regular' },
 });
 
-// ─────────────────────────────────────────────────────────────────
-// Streak Bar (horizontal)
-// ─────────────────────────────────────────────────────────────────
 interface StreakBarProps {
   label: string;
   emoji: string;
