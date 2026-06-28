@@ -28,16 +28,20 @@ jobs:
           version: 11
 
       - name: Install dependencies
-        working-directory: artifacts/mobile
         run: pnpm install
+        working-directory: artifacts/mobile
 
       - name: Expo prebuild
-        working-directory: artifacts/mobile
         run: pnpm expo prebuild --platform android --clean
+        working-directory: artifacts/mobile
+
+      - name: Bundle JS
+        run: pnpm expo export:embed --platform android --dev false
+        working-directory: artifacts/mobile
 
       - name: Build APK
+        run: ./gradlew assembleRelease --no-daemon --stacktrace
         working-directory: artifacts/mobile/android
-        run: ./gradlew assembleRelease --no-daemon
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
