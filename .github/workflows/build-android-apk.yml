@@ -46,11 +46,15 @@ jobs:
         working-directory: artifacts/mobile
 
       - name: Build APK
-        run: ./gradlew assembleRelease --no-daemon --stacktrace 2>&1 | head -100
+        run: ./gradlew assembleRelease --no-daemon
+        working-directory: artifacts/mobile/android
+
+      - name: Find APK
+        run: find . -name "*.apk" 2>/dev/null
         working-directory: artifacts/mobile/android
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: forgehabits-release
-          path: artifacts/mobile/android/app/build/outputs/apk/release/app-release.apk
+          path: artifacts/mobile/android/app/build/outputs/apk/**/*.apk
