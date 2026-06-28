@@ -42,7 +42,7 @@ jobs:
             --platform android \
             --dev false \
             --bundle-output /tmp/bundle-test/index.android.bundle \
-            --assets-dest /tmp/bundle-test/res 2>&1 || true
+            --assets-dest /tmp/bundle-test/res 2>&1 | tail -50
         working-directory: artifacts/mobile
 
       - name: Build APK
