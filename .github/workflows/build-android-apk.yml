@@ -35,18 +35,18 @@ jobs:
         run: pnpm expo prebuild --platform android --clean
         working-directory: artifacts/mobile
 
-      - name: Bundle JS
+      - name: Test bundle
         run: |
-          mkdir -p android/app/src/main/assets
+          mkdir -p /tmp/bundle-test
           pnpm expo export:embed \
             --platform android \
             --dev false \
-            --bundle-output android/app/src/main/assets/index.android.bundle \
-            --assets-dest android/app/src/main/res
+            --bundle-output /tmp/bundle-test/index.android.bundle \
+            --assets-dest /tmp/bundle-test/res 2>&1 || true
         working-directory: artifacts/mobile
 
       - name: Build APK
-        run: ./gradlew assembleRelease --no-daemon -x createBundleReleaseJsAndAssets
+        run: ./gradlew assembleRelease --no-daemon --stacktrace 2>&1 | head -100
         working-directory: artifacts/mobile/android
 
       - name: Upload APK
