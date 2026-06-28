@@ -14,7 +14,7 @@ Notifications.setNotificationHandler({
 
 export async function setupNotificationChannel(): Promise<void> {
   if (Platform.OS === 'android') {
-    await Notifications.setNotificationChannelAsync('default', {
+    await Notifications.setNotificationChannelAsync('forgehabits_default', {
       name: 'Habit Reminders',
       importance: Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 250, 250, 250],
@@ -22,7 +22,7 @@ export async function setupNotificationChannel(): Promise<void> {
       enableLights: true,
       lightColor: '#FF6B00',
     });
-    await Notifications.setNotificationChannelAsync('monk_mode', {
+    await Notifications.setNotificationChannelAsync('forgehabits_monk', {
       name: 'Monk Mode',
       importance: Notifications.AndroidImportance.HIGH,
       sound: 'default',
@@ -59,7 +59,7 @@ export async function scheduleHabitReminder(habit: Habit): Promise<void> {
           type: Notifications.SchedulableTriggerInputTypes.DAILY,
           hour,
           minute,
-          channelId: 'default',
+          channelId: 'forgehabits_default',
         },
       });
     } catch (error) {
@@ -123,7 +123,7 @@ export async function scheduleMidnightReset(): Promise<void> {
         type: Notifications.SchedulableTriggerInputTypes.DAILY,
         hour: 0,
         minute: 0,
-        channelId: 'default',
+        channelId: 'forgehabits_default',
       },
     });
   } catch (error) {
