@@ -46,7 +46,7 @@ jobs:
         working-directory: artifacts/mobile
 
       - name: Build APK
-        run: ./gradlew assembleRelease --no-daemon
+        run: ./gradlew assembleRelease --no-daemon -x createBundleReleaseJsAndAssets
         working-directory: artifacts/mobile/android
 
       - name: Upload APK
