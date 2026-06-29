@@ -59,8 +59,10 @@ jobs:
         working-directory: artifacts/mobile
 
       - name: Build APK
-        run: ./gradlew assembleRelease --no-daemon
         working-directory: artifacts/mobile/android
+        env:
+          JS_RUNTIME: hermes
+        run: ./gradlew assembleRelease --no-daemon
 
       - name: Find APK
         run: find /home/runner/work -name "*.apk" 2>/dev/null
