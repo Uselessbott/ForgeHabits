@@ -35,6 +35,10 @@ jobs:
         run: pnpm expo prebuild --platform android --clean
         working-directory: artifacts/mobile
 
+      - name: Disable Hermes
+        run: echo "hermesEnabled=false" >> android/gradle.properties
+        working-directory: artifacts/mobile
+
       - name: Build APK
         run: ./gradlew assembleRelease --no-daemon
         working-directory: artifacts/mobile/android
