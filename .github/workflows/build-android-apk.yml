@@ -36,7 +36,7 @@ jobs:
         working-directory: artifacts/mobile
 
       - name: Build APK
-        run: ./gradlew assembleRelease --no-daemon --stacktrace 2>&1 | grep -A 5 "Error\|error\|FAILED\|Exception" | head -80
+        run: ./gradlew assembleRelease --no-daemon
         working-directory: artifacts/mobile/android
 
       - name: Find APK
