@@ -42,15 +42,16 @@ jobs:
         working-directory: artifacts/mobile
 
       - name: Build APK
-        run: ./gradlew assembleRelease --no-daemon --info 2>&1 | grep -A 10 "cmake\|CMake\|worklets\|ninja" | head -100
+        run: ./gradlew assembleRelease --no-daemon
         working-directory: artifacts/mobile/android
 
       - name: Find APK
-        run: find . -name "*.apk" 2>/dev/null
-        working-directory: artifacts/mobile/android
-
+        id: find_apk
+        run: |
+          find /home/runner/work -name "*.apk" 2>/dev/null
+        
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: forgehabits-release
-          path: artifacts/mobile/android/app/build/outputs/apk/**/*.apk
+          path: /home/runner/work/ForgeHabits/ForgeHabits/artifacts/mobile/android/app/build/outputs/apk/release/app-release-unsigned.apk
