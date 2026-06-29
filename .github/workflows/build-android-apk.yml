@@ -8,6 +8,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
 
@@ -19,8 +20,8 @@ jobs:
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
-          distribution: 'temurin'
+          java-version: "17"
+          distribution: "temurin"
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v3
@@ -36,27 +37,25 @@ jobs:
           sdkmanager "cmake;3.31.5"
 
       - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
         working-directory: artifacts/mobile
+        run: pnpm install --no-frozen-lockfile
 
-      - name: Patch worklets CMake version
+      - name: Patch Worklets CMake
         run: |
           find /home/runner/work -path "*/react-native-worklets*/android/build.gradle" 2>/dev/null | while read f; do
             echo "Patching: $f"
             sed -i 's/version "3\.22\.1"/version "3.31.5"/g' "$f"
             sed -i 's/3\.22\.1/3.31.5/g' "$f"
-            grep -i cmake "$f"
           done
 
-      - name: Expo prebuild
-        run: pnpm expo prebuild --platform android --clean
+      - name: Expo Prebuild
         working-directory: artifacts/mobile
+        run: pnpm exec expo prebuild --platform android --clean
 
-      - name: Disable Hermes and limit ABI
-        run: |
-          echo "hermesEnabled=false" >> android/gradle.properties
-          echo "reactNativeArchitectures=arm64-v8a" >> android/gradle.properties
+      - name: Limit ABI
         working-directory: artifacts/mobile
+        run: |
+          echo "reactNativeArchitectures=arm64-v8a" >> android/gradle.properties
 
       - name: Build APK
         working-directory: artifacts/mobile/android
@@ -65,10 +64,11 @@ jobs:
         run: ./gradlew assembleRelease --no-daemon
 
       - name: Find APK
-        run: find /home/runner/work -name "*.apk" 2>/dev/null
+        run: |
+          find /home/runner/work -name "*.apk" 2>/dev/null
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: forgehabits-release
-          path: /home/runner/work/ForgeHabits/ForgeHabits/artifacts/mobile/android/app/build/outputs/apk/release/app-release-unsigned.apk
+          name: ForgeHabits
+          path: artifacts/mobile/android/app/build/outputs/apk/release/app-release.apk
