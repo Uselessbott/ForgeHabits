@@ -42,7 +42,7 @@ jobs:
         working-directory: artifacts/mobile
 
       - name: Build APK
-        run: ./gradlew assembleRelease --no-daemon
+        run: ./gradlew assembleRelease --no-daemon --info 2>&1 | grep -A 10 "cmake\|CMake\|worklets\|ninja" | head -100
         working-directory: artifacts/mobile/android
 
       - name: Find APK
