@@ -42,7 +42,7 @@
         {
           "icon": "./assets/images/icon.png",
           "color": "#080808",
-          "defaultChannel": "default"
+          "defaultChannel": "forgehabits_default"
         }
       ],
       [

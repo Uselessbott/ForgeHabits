@@ -4,6 +4,8 @@ import { FlexWidget, TextWidget } from 'react-native-android-widget';
 export function ForgeHabitsWidget() {
   return (
     <FlexWidget
+  clickAction="OPEN_APP"
+  accessibilityLabel="Open ForgeHabits"
       style={{
         height: 'match_parent',
         width: 'match_parent',
