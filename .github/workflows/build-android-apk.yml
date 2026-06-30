@@ -57,6 +57,17 @@ jobs:
         run: |
           echo "reactNativeArchitectures=arm64-v8a" >> android/gradle.properties
 
+
+      - name: Debug HabitsContext
+        working-directory: artifacts/mobile
+        run: |
+          echo "===== COMMIT ====="
+          git rev-parse HEAD
+          echo "===== requestWidgetUpdate ====="
+          grep -n "requestWidgetUpdate" context/HabitsContext.tsx
+          echo "===== IMPORT BLOCK ====="
+          sed -n '1,30p' context/HabitsContext.tsx
+
       - name: Build APK
         working-directory: artifacts/mobile/android
         env:
