@@ -12,6 +12,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Debug workflow
+        run: |
+          git rev-parse HEAD
+          grep -n "Install NDK\|sdkmanager" .github/workflows/*.yml || true
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
