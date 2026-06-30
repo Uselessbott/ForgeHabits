@@ -18,6 +18,7 @@ import {
   setupNotificationChannel,
   requestNotificationPermissions,
   scheduleMidnightReset,
+  testNotification,
 } from '@/utils/notifications';
 
 SplashScreen.preventAutoHideAsync();
@@ -66,7 +67,7 @@ export default function RootLayout() {
     setupNotificationChannel().then(() => {
       requestNotificationPermissions().then(granted => {
         if (granted) {
-          scheduleMidnightReset();
+          testNotification();
         }
       });
     });

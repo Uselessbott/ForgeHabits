@@ -141,3 +141,17 @@ export async function rescheduleAllHabitReminders(habits: Habit[]): Promise<void
     }
   }
 }
+
+export async function testNotification(): Promise<void> {
+  await Notifications.scheduleNotificationAsync({
+    content: {
+      title: 'ForgeHabits Test',
+      body: 'Notifications are working!',
+      sound: 'default',
+    },
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+      seconds: 5,
+    },
+  });
+}

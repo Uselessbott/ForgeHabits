@@ -10,6 +10,16 @@ import {
 } from '@/utils/scheduling';
 import { getCurrentStreak, getLongestStreak } from '@/utils/streaks';
 import { runDailyReset } from '@/utils/dailyReset';
+import {
+  scheduleHabitReminder,
+  cancelHabitReminders,
+  rescheduleAllHabitReminders,
+  scheduleMonkModeNotification,
+  requestWidgetUpdate,
+
+  cancelMonkModeNotification,
+} from "@/utils/notifications";
+import { requestWidgetUpdate } from "react-native-android-widget";
 
 const KEYS = {
   HABITS: '@fg:habits',
@@ -131,6 +141,17 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
   function setSettingsAndSave(s: AppSettings) { setSettings(s); save(KEYS.SETTINGS, s); }
   function setFreezesAndSave(f: StreakFreeze[]) { setFreezes(f); save(KEYS.FREEZES, f); }
 
+  function refreshWidget() {
+    requestWidgetUpdate({
+      widgetName: "ForgeHabitsWidget",
+      renderWidget: () => {
+        const { ForgeHabitsWidget } = require("../widgets/Widget");
+        return <ForgeHabitsWidget />;
+      },
+    }).catch(console.warn);
+  }
+
+
   function createHabit(data: Omit<Habit, 'id' | 'createdAt' | 'archived' | 'sortOrder'>) {
     const h: Habit = {
       ...data,
@@ -140,16 +161,28 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
       sortOrder: habits.length,
     };
     setHabitsAndSave([...habits, h]);
+    if (settings.notificationsEnabled) {
+      scheduleHabitReminder(h).catch(console.warn);
+      refreshWidget();
+    }
   }
 
   function updateHabit(id: string, updates: Partial<Habit>) {
     setHabitsAndSave(habits.map(h => h.id === id ? { ...h, ...updates } : h));
+    const updatedHabit = habits.find(h => h.id === id);
+    if (updatedHabit && settings.notificationsEnabled) {
+      const mergedHabit = { ...updatedHabit, ...updates };
+      cancelHabitReminders(id).then(() => scheduleHabitReminder(mergedHabit)).catch(console.warn);
+      refreshWidget();
+    }
   }
 
   function deleteHabit(id: string) {
     setHabitsAndSave(habits.filter(h => h.id !== id));
     setLogsAndSave(logs.filter(l => l.habitId !== id));
     setFreezesAndSave(freezes.filter(f => f.habitId !== id));
+    cancelHabitReminders(id).catch(console.warn);
+    refreshWidget();
   }
 
   function archiveHabit(id: string) { updateHabit(id, { archived: true }); }
@@ -187,6 +220,7 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
     if (existing) {
       if (existing.status === 'completed') {
         setLogsAndSave(logs.filter(l => !(l.habitId === habitId && l.date === date)));
+      refreshWidget();
       }
     } else {
       const newLog: HabitLog = {
@@ -197,6 +231,17 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
         completedAt: new Date().toISOString(),
       };
       setLogsAndSave([...logs, newLog]);
+      if (settings.monkModeEnabled) {
+        const completed = logs.filter(l => l.date === today && l.status === "completed").length + 1;
+        const total = getHabitsForDate(today).length;
+        const remaining = Math.max(0, total - completed);
+        if (remaining > 0) {
+          scheduleMonkModeNotification(remaining).catch(console.warn);
+        } else {
+          cancelMonkModeNotification().catch(console.warn);
+        refreshWidget();
+        }
+      }
     }
   }
 

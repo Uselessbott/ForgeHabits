@@ -9,7 +9,7 @@ import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useColors } from '@/hooks/useColors';
 import { useHabits } from '@/context/HabitsContext';
-import { requestNotificationPermissions, rescheduleAllHabitReminders, cancelAllHabitReminders, scheduleMidnightReset } from '@/utils/notifications';
+import { requestNotificationPermissions, rescheduleAllHabitReminders, cancelAllHabitReminders, scheduleMidnightReset , scheduleMonkModeNotification, cancelMonkModeNotification } from '@/utils/notifications';
 
 export default function ProfileScreen() {
   const colors = useColors();
@@ -169,7 +169,18 @@ export default function ProfileScreen() {
             </View>
             <Switch
               value={settings.monkModeEnabled}
-              onValueChange={val => updateSettings({ monkModeEnabled: val })}
+              onValueChange={async (val) => {
+                  updateSettings({ monkModeEnabled: val });
+
+                  if (val) {
+                    const remaining = habits.filter(h => !h.archived && !h.completedToday).length;
+                    await scheduleMonkModeNotification(remaining);
+                  } else {
+                    await cancelMonkModeNotification();
+                  }
+
+                  Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                }}
               trackColor={{ true: colors.primary, false: colors.border }}
               thumbColor="#fff"
             />
