@@ -88,7 +88,6 @@ export async function scheduleMonkModeNotification(remaining: number): Promise<v
         body: remaining > 0
           ? `${remaining} habit${remaining > 1 ? 's' : ''} remaining today. Stay focused.`
           : 'All habits complete! Outstanding discipline.',
-        sticky: Platform.OS === 'android',
         data: { type: 'monk_mode' },
         sound: 'default',
       },

@@ -6,6 +6,10 @@ export function ForgeHabitsWidget() {
     <FlexWidget
   clickAction="OPEN_APP"
   accessibilityLabel="Open ForgeHabits"
+  clickAction="OPEN_APP"
+  accessibilityLabel="Open ForgeHabits"
+  clickAction="OPEN_APP"
+  accessibilityLabel="Open ForgeHabits"
       style={{
         height: 'match_parent',
         width: 'match_parent',
