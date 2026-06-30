@@ -1,7 +1,17 @@
-import 'expo-router/entry';
+ import React from 'react';
 import { registerWidgetTaskHandler } from 'react-native-android-widget';
+import { ForgeHabitsWidget } from './widgets/Widget';
 
-registerWidgetTaskHandler(async ({ renderWidget }) => {
-  const { ForgeHabitsWidget } = require('./widgets/Widget');
-  renderWidget(<ForgeHabitsWidget />);
+const widgetRegistry: Record<string, React.FC<any>> = {
+  ForgeHabitsWidget,
+};
+
+registerWidgetTaskHandler((widgetInfo) => {
+  const WidgetComponent = widgetRegistry[widgetInfo.widgetName];
+
+  if (!WidgetComponent) {
+    return null;
+  }
+
+  return <WidgetComponent widgetInfo={widgetInfo} />;
 });
