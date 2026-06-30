@@ -14,7 +14,7 @@ import { requestNotificationPermissions, rescheduleAllHabitReminders, cancelAllH
 export default function ProfileScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { settings, updateSettings, habits, resetAllData, getLifetimeStats, canUseStreakFreeze } = useHabits();
+  const { settings, updateSettings, habits, logs, getHabitsForDate, resetAllData, getLifetimeStats, canUseStreakFreeze } = useHabits();
   const [nameInput, setNameInput] = useState(settings.userName);
   const [nameSaved, setNameSaved] = useState(false);
 
@@ -173,7 +173,12 @@ export default function ProfileScreen() {
                   updateSettings({ monkModeEnabled: val });
 
                   if (val) {
-                    const remaining = habits.filter(h => !h.archived && !h.completedToday).length;
+                    const today = getTodayStr();
+                    const total = getHabitsForDate(today).length;
+                    const completed = logs.filter(
+                      l => l.date === today && l.status === "completed"
+                    ).length;
+                    const remaining = Math.max(0, total - completed);
                     await scheduleMonkModeNotification(remaining);
                   } else {
                     await cancelMonkModeNotification();
