@@ -15,7 +15,6 @@ import {
   cancelHabitReminders,
   rescheduleAllHabitReminders,
   scheduleMonkModeNotification,
-  requestWidgetUpdate,
 
   cancelMonkModeNotification,
 } from "@/utils/notifications";
