@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
+import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   Habit, Category, HabitLog, AppSettings, DailyScore,
@@ -11,7 +12,12 @@ import {
 import { getCurrentStreak, getLongestStreak } from '@/utils/streaks';
 import { runDailyReset } from '@/utils/dailyReset';
 import { requestWidgetUpdate } from 'react-native-android-widget';
-import { updateMonkMode } from "@/utils/monkMode";
+import {
+  startMonkModeSession,
+  syncMonkModeSession,
+  stopMonkModeSession,
+  getMonkModeSessionState,
+} from "@/utils/monkMode";
 const KEYS = {
   HABITS: '@fg:habits',
   CATEGORIES: '@fg:categories',
@@ -127,6 +133,73 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(false);
     })();
   }, []);
+
+  useEffect(() => {
+    if (Platform.OS !== 'android' || isLoading) return;
+
+    const reconcile = async () => {
+      try {
+        const sessionState = await getMonkModeSessionState();
+        if (!sessionState?.isActive) return;
+
+        const today = getTodayStr();
+
+        if (sessionState.sessionDate !== today) {
+          await stopMonkModeSession();
+          return;
+        }
+
+        let needsUpdate = false;
+        const updatedLogs = [...logs];
+
+        sessionState.habits.forEach(habit => {
+          if (!habit.completed) return;
+
+          const exists = updatedLogs.some(
+            l =>
+              l.habitId === habit.id &&
+              l.date === today &&
+              (l.status === "completed" || l.status === "frozen")
+          );
+
+          if (!exists) {
+            updatedLogs.push({
+              id: generateId(),
+              habitId: habit.id,
+              date: today,
+              status: "completed",
+              completedAt: new Date().toISOString(),
+            });
+            needsUpdate = true;
+          }
+        });
+
+        if (needsUpdate) {
+          setLogsAndSave(updatedLogs);
+        }
+
+        const scheduled = habits.filter(
+          h => !h.archived && isHabitScheduledForDate(h, today)
+        );
+
+        await syncMonkModeSession(
+          scheduled.map(h => ({
+            id: h.id,
+            name: h.name,
+            completed: updatedLogs.some(
+              l =>
+                l.habitId === h.id &&
+                l.date === today &&
+                (l.status === "completed" || l.status === "frozen")
+            ),
+          }))
+        );
+      } catch {}
+    };
+
+    reconcile();
+  }, [isLoading]);
+
   // Refresh widget whenever habits or logs change on disk
   function setHabitsAndSave(h: Habit[]) { setHabits(h); save(KEYS.HABITS, h); refreshWidget(); }
   function setCatsAndSave(c: Category[]) { setCategories(c); save(KEYS.CATEGORIES, c); }
@@ -207,16 +280,18 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
         h => !h.archived && isHabitScheduledForDate(h, today)
       );
 
-      const completed = scheduled.filter(h =>
-        newLogs.some(
+      const habitData = scheduled.map(h => ({
+        id: h.id,
+        name: h.name,
+        completed: newLogs.some(
           l =>
             l.habitId === h.id &&
             l.date === today &&
             (l.status === 'completed' || l.status === 'frozen')
-        )
-      ).length;
+        ),
+      }));
 
-      updateMonkMode(scheduled.length - completed);
+      syncMonkModeSession(habitData).catch(() => {});
     }
   }
 
@@ -244,6 +319,30 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
   function updateSettings(updates: Partial<AppSettings>) {
     const ns = { ...settings, ...updates };
     setSettingsAndSave(ns);
+
+    if (updates.monkModeEnabled === true) {
+      const today = getTodayStr();
+      const scheduled = habits.filter(
+        h => !h.archived && isHabitScheduledForDate(h, today)
+      );
+
+      const habitData = scheduled.map(h => ({
+        id: h.id,
+        name: h.name,
+        completed: logs.some(
+          l =>
+            l.habitId === h.id &&
+            l.date === today &&
+            (l.status === 'completed' || l.status === 'frozen')
+        ),
+      }));
+
+      startMonkModeSession(habitData).catch(() => {});
+    }
+
+    if (updates.monkModeEnabled === false) {
+      stopMonkModeSession().catch(() => {});
+    }
   }
   async function resetAllData(): Promise<void> {
     await Promise.all([
