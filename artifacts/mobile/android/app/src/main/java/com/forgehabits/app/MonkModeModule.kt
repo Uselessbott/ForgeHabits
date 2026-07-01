@@ -3,6 +3,7 @@ package com.forgehabits.app
 import android.content.Context
 import android.os.Build
 import android.util.Log
+import android.widget.Toast
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
@@ -27,6 +28,7 @@ class MonkModeModule(private val reactContext: ReactApplicationContext) :
     @ReactMethod
     fun startMonkMode(remaining: Int) {
         Log.d("MonkMode", "startMonkMode called: " + remaining)
+        Toast.makeText(reactContext, "startMonkMode called", Toast.LENGTH_LONG).show()
         val intent = MonkModeService.buildStartIntent(reactContext, remaining)
         startService(reactContext, intent)
     }
