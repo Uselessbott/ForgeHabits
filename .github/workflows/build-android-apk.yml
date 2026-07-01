@@ -44,6 +44,12 @@ jobs:
         working-directory: artifacts/mobile
         run: pnpm exec expo prebuild --platform android
 
+      - name: Debug gradle.properties
+        working-directory: artifacts/mobile
+        run: |
+          echo "===== gradle.properties ====="
+          cat android/gradle.properties
+
       - name: Limit ABI
         working-directory: artifacts/mobile
         run: |
