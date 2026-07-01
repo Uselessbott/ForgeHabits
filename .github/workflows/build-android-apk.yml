@@ -101,9 +101,16 @@ jobs:
 
       - name: Build APK
         working-directory: artifacts/mobile/android
+        continue-on-error: true
         env:
           JS_RUNTIME: hermes
         run: ./gradlew assembleRelease --stacktrace --info --no-daemon
+
+      - name: Show generated files
+        working-directory: artifacts/mobile/android
+        run: |
+          find app/build -type f | grep -E "MonkModeState|ActiveHabit|proto" || true
+          find app/build/generated -type f || true
 
       - name: Find APK
         run: |
