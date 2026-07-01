@@ -11,6 +11,7 @@ import {
 import { getCurrentStreak, getLongestStreak } from '@/utils/streaks';
 import { runDailyReset } from '@/utils/dailyReset';
 import { requestWidgetUpdate } from 'react-native-android-widget';
+import { updateMonkMode } from "@/utils/monkMode";
 const KEYS = {
   HABITS: '@fg:habits',
   CATEGORIES: '@fg:categories',
@@ -175,22 +176,50 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
   function markHabit(habitId: string, date: string) {
     const today = getTodayStr();
     if (date !== today) return;
-    const existing = logs.find(l => l.habitId === habitId && l.date === date);
-    if (existing) {
-      if (existing.status === 'completed') {
-        setLogsAndSave(logs.filter(l => !(l.habitId === habitId && l.date === date)));
-      }
+
+    let newLogs: HabitLog[];
+
+    const existing = logs.find(
+      l => l.habitId === habitId && l.date === date
+    );
+
+    if (existing?.status === 'completed') {
+      newLogs = logs.filter(
+        l => !(l.habitId === habitId && l.date === date)
+      );
     } else {
-      const newLog: HabitLog = {
-        id: generateId(),
-        habitId,
-        date,
-        status: 'completed',
-        completedAt: new Date().toISOString(),
-      };
-      setLogsAndSave([...logs, newLog]);
+      newLogs = [
+        ...logs,
+        {
+          id: generateId(),
+          habitId,
+          date,
+          status: 'completed',
+          completedAt: new Date().toISOString(),
+        },
+      ];
+    }
+
+    setLogsAndSave(newLogs);
+
+    if (settings.monkModeEnabled) {
+      const scheduled = habits.filter(
+        h => !h.archived && isHabitScheduledForDate(h, today)
+      );
+
+      const completed = scheduled.filter(h =>
+        newLogs.some(
+          l =>
+            l.habitId === h.id &&
+            l.date === today &&
+            (l.status === 'completed' || l.status === 'frozen')
+        )
+      ).length;
+
+      updateMonkMode(scheduled.length - completed);
     }
   }
+
   function canUseStreakFreeze(): boolean {
     const month = getMonthStr(getTodayStr());
     return !freezes.some(f => f.month === month);
