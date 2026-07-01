@@ -100,6 +100,11 @@ jobs:
         run: |
           find app/build -type f | grep -E "MonkModeState|ActiveHabit|proto" || true
 
+
+      - name: Show Kotlin classpath
+        working-directory: artifacts/mobile/android
+        run: ./gradlew app:compileReleaseKotlin --debug | grep -i "protobuf\|GeneratedMessageLite\|compileReleaseKotlin" || true
+
       - name: Build APK
         working-directory: artifacts/mobile/android
         continue-on-error: true
