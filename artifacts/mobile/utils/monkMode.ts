@@ -1,4 +1,4 @@
-import { NativeModules, Platform } from 'react-native';
+import { NativeModules, Platform, Alert } from 'react-native';
 
 /**
  * Thin TypeScript bridge to MonkModeModule (Kotlin).
@@ -19,18 +19,21 @@ function isAvailable(): boolean {
 }
 
 export function startMonkMode(remaining: number): void {
+  Alert.alert("MonkMode Debug", "Module exists: " + (!!MonkModeModule));
   if (isAvailable()) {
     MonkModeModule.startMonkMode(remaining);
   }
 }
 
 export function updateMonkMode(remaining: number): void {
+  Alert.alert("MonkMode Debug", "Module exists: " + (!!MonkModeModule));
   if (isAvailable()) {
     MonkModeModule.updateMonkMode(remaining);
   }
 }
 
 export function stopMonkMode(): void {
+  Alert.alert("MonkMode Debug", "Module exists: " + (!!MonkModeModule));
   if (isAvailable()) {
     MonkModeModule.stopMonkMode();
   }
