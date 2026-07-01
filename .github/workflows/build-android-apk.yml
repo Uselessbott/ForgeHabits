@@ -106,11 +106,10 @@ jobs:
           JS_RUNTIME: hermes
         run: ./gradlew assembleRelease --stacktrace --info --no-daemon
 
-      - name: Show generated files
+      - name: Show generated MonkModeState
         working-directory: artifacts/mobile/android
         run: |
-          find app/build -type f | grep -E "MonkModeState|ActiveHabit|proto" || true
-          find app/build/generated -type f || true
+          sed -n '1,60p' app/build/generated/source/proto/release/java/com/forgehabits/app/MonkModeState.java
 
       - name: Find APK
         run: |
