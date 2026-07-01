@@ -1,0 +1,77 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Debug workflow
+        run: |
+          git rev-parse HEAD
+          grep -n "Install NDK\|sdkmanager" .github/workflows/*.yml || true
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: "temurin"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 11
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install dependencies
+        working-directory: .
+        run: pnpm install --frozen-lockfile
+
+      - name: Expo Prebuild
+        working-directory: artifacts/mobile
+        run: pnpm exec expo prebuild --platform android
+
+      - name: Limit ABI
+        working-directory: artifacts/mobile
+        run: |
+          echo "reactNativeArchitectures=arm64-v8a" >> android/gradle.properties
+
+
+      - name: Debug HabitsContext
+        working-directory: artifacts/mobile
+        run: |
+          echo "===== COMMIT ====="
+          git rev-parse HEAD
+          echo "===== requestWidgetUpdate ====="
+          grep -n "requestWidgetUpdate" context/HabitsContext.tsx
+          echo "===== IMPORT BLOCK ====="
+          sed -n '1,30p' context/HabitsContext.tsx
+
+      - name: Build APK
+        working-directory: artifacts/mobile/android
+        env:
+          JS_RUNTIME: hermes
+        run: ./gradlew assembleRelease --stacktrace --info --no-daemon
+
+      - name: Find APK
+        run: |
+          find /home/runner/work -name "*.apk" 2>/dev/null
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: ForgeHabits
+          path: artifacts/mobile/android/app/build/outputs/apk/release/app-release.apk

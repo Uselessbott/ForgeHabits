@@ -11,6 +11,7 @@ import { HabitCard } from '@/components/HabitCard';
 import { ProgressRing } from '@/components/ProgressRing';
 import { getTodayStr, getWeekStart, MONTH_NAMES, parseDate } from '@/utils/scheduling';
 import { getDailyQuote } from '@/utils/motivations';
+import { updateMonkMode } from "@/utils/monkMode";
 
 function getGreeting(name: string, remaining: number, completed: number): string {
   const hour = new Date().getHours();
@@ -37,6 +38,7 @@ export default function TodayScreen() {
   const score = getDailyScore(today);
   const todayHabits = getHabitsForDate(today);
   const quote = useMemo(() => getDailyQuote(), [today]);
+import { updateMonkMode } from "@/utils/monkMode";
   const remaining = score.total - score.completed;
 
   const bestStreak = useMemo(() => {
@@ -62,6 +64,12 @@ export default function TodayScreen() {
   function handleToggle(habitId: string) {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     markHabit(habitId, today);
+    if (settings.monkModeEnabled) {
+      setTimeout(() => {
+        const score = getDailyScore(today);
+        updateMonkMode(score.total - score.completed);
+      }, 50);
+    }
   }
 
   function handleMonkMode() {

@@ -1,0 +1,19 @@
+[33mcommit bdc510d5c4a20d4b60352b95342a1fe1a44b1aa5[m
+Author: Uselessbott <charansadimela0@gmail.com>
+Date:   Wed Jul 1 11:34:59 2026 +0530
+
+    Temporarily disable New Architecture
+
+[1mdiff --git a/artifacts/mobile/app.json b/artifacts/mobile/app.json[m
+[1mindex 3fd684e..038196d 100644[m
+[1m--- a/artifacts/mobile/app.json[m
+[1m+++ b/artifacts/mobile/app.json[m
+[36m@@ -7,7 +7,7 @@[m
+     "icon": "./assets/images/icon.png",[m
+     "scheme": "mobile",[m
+     "userInterfaceStyle": "dark",[m
+[31m-    "newArchEnabled": true,[m
+[32m+[m[32m    "newArchEnabled": false,[m
+     "splash": {[m
+       "image": "./assets/images/icon.png",[m
+       "resizeMode": "contain",[m
