@@ -75,6 +75,13 @@ jobs:
           echo "===== IMPORT BLOCK ====="
           sed -n '1,30p' context/HabitsContext.tsx
 
+
+      - name: Show protobuf dependencies
+        working-directory: artifacts/mobile/android
+        run: |
+          ./gradlew :app:dependencies --configuration releaseCompileClasspath > deps.txt
+          grep -i protobuf deps.txt || true
+
       - name: Build APK
         working-directory: artifacts/mobile/android
         env:
