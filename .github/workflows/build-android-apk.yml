@@ -42,7 +42,7 @@ jobs:
 
       - name: Expo Prebuild
         working-directory: artifacts/mobile
-        run: pnpm exec expo prebuild --platform android --clean
+        run: pnpm exec expo prebuild --platform android
 
       - name: Limit ABI
         working-directory: artifacts/mobile
@@ -64,7 +64,7 @@ jobs:
         working-directory: artifacts/mobile/android
         env:
           JS_RUNTIME: hermes
-        run: ./gradlew assembleRelease --no-daemon
+        run: ./gradlew assembleRelease --stacktrace --info --no-daemon
 
       - name: Find APK
         run: |
