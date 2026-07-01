@@ -32,7 +32,7 @@ class MonkModeActionReceiver : BroadcastReceiver() {
 
         scope.launch {
             try {
-                val session = MonkModeSession.getInstance(context)
+                val session = MonkModeSessionManager.getInstance(context)
                 val changed = session.completeHabitById(habitId, sessionDate)
 
                 if (changed) {

@@ -21,7 +21,7 @@ class MonkModeBootReceiver : BroadcastReceiver() {
 
         scope.launch {
             try {
-                val session = MonkModeSession.getInstance(context)
+                val session = MonkModeSessionManager.getInstance(context)
                 
                 if (session.hasUnfinishedHabits()) {
                     val startIntent = Intent(context, MonkModeService::class.java).apply {

@@ -31,8 +31,8 @@ class MonkModeModule(
     fun startMonkModeSession(habitsArray: ReadableArray, promise: Promise) {
         moduleScope.launch {
             try {
-                val session = MonkModeSession.getInstance(reactApplicationContext)
-                val habits = MonkModeSession.habitsFromReadableArray(habitsArray)
+                val session = MonkModeSessionManager.getInstance(reactApplicationContext)
+                val habits = MonkModeSessionManager.habitsFromReadableArray(habitsArray)
                 session.startSession(habits)
 
                 val intent = Intent(
@@ -63,8 +63,8 @@ class MonkModeModule(
     fun syncMonkModeSession(habitsArray: ReadableArray, promise: Promise) {
         moduleScope.launch {
             try {
-                val session = MonkModeSession.getInstance(reactApplicationContext)
-                val habits = MonkModeSession.habitsFromReadableArray(habitsArray)
+                val session = MonkModeSessionManager.getInstance(reactApplicationContext)
+                val habits = MonkModeSessionManager.habitsFromReadableArray(habitsArray)
                 session.syncFromRN(habits)
 
                 if (session.getValidState() != null) {
@@ -93,7 +93,7 @@ class MonkModeModule(
     fun stopMonkModeSession(promise: Promise) {
         moduleScope.launch {
             try {
-                MonkModeSession.getInstance(reactApplicationContext)
+                MonkModeSessionManager.getInstance(reactApplicationContext)
                     .stopSession()
 
                 val intent = Intent(
@@ -120,12 +120,12 @@ class MonkModeModule(
     fun getMonkModeSessionState(promise: Promise) {
         moduleScope.launch {
             try {
-                val session = MonkModeSession.getInstance(reactApplicationContext)
+                val session = MonkModeSessionManager.getInstance(reactApplicationContext)
                 val state = session.getValidState()
 
                 if (state != null) {
                     promise.resolve(
-                        MonkModeSession.stateToWritableMap(
+                        MonkModeSessionManager.stateToWritableMap(
                             state,
                             SystemDateProvider()
                         )
@@ -162,7 +162,7 @@ class MonkModeModule(
     fun stopMonkMode() {
         moduleScope.launch {
             try {
-                MonkModeSession.getInstance(reactApplicationContext)
+                MonkModeSessionManager.getInstance(reactApplicationContext)
                     .stopSession()
 
                 val intent = Intent(

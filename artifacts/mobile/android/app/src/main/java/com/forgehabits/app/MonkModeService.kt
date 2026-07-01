@@ -43,14 +43,14 @@ class MonkModeService : Service() {
     }
 
     private lateinit var notificationManager: NotificationManager
-    private lateinit var session: MonkModeSession
+    private lateinit var session: MonkModeSessionManager
     private val dateProvider = SystemDateProvider()
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     override fun onCreate() {
         super.onCreate()
         notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        session = MonkModeSession.getInstance(this)
+        session = MonkModeSessionManager.getInstance(this)
         createChannel()
 
         // Post temporary notification immediately (Android requires startForeground

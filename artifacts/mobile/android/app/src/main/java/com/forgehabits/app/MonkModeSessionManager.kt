@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
-class MonkModeSession private constructor(
+class MonkModeSessionManager private constructor(
     private val dataStore: DataStore<MonkModeState>,
     private val dateProvider: DateProvider
 ) {
@@ -22,11 +22,11 @@ class MonkModeSession private constructor(
         )
 
         @Volatile
-        private var instance: MonkModeSession? = null
+        private var instance: MonkModeSessionManager? = null
 
-        fun getInstance(context: Context): MonkModeSession {
+        fun getInstance(context: Context): MonkModeSessionManager {
             return instance ?: synchronized(this) {
-                instance ?: MonkModeSession(
+                instance ?: MonkModeSessionManager(
                     context.applicationContext.monkModeDataStore,
                     SystemDateProvider()
                 ).also { instance = it }
