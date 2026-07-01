@@ -59,6 +59,7 @@ class MonkModeService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        Log.d("MonkMode", "Service started: ${intent?.action}")
         when (intent?.action) {
             ACTION_START -> {
                 val remaining = intent.getIntExtra(EXTRA_REMAINING, 0)
