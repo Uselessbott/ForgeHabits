@@ -95,6 +95,7 @@ jobs:
 
 
       - name: Find generated proto
+        if: always()
         working-directory: artifacts/mobile/android
         run: |
           find app/build -type f | grep -E "MonkModeState|ActiveHabit|proto" || true
@@ -107,6 +108,7 @@ jobs:
         run: ./gradlew assembleRelease --stacktrace --info --no-daemon
 
       - name: Show generated MonkModeState
+        if: always()
         working-directory: artifacts/mobile/android
         run: |
           sed -n '1,60p' app/build/generated/source/proto/release/java/com/forgehabits/app/MonkModeState.java
