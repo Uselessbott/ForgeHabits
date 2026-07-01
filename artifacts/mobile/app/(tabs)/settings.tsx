@@ -9,12 +9,18 @@ import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useColors } from '@/hooks/useColors';
 import { useHabits } from '@/context/HabitsContext';
-import { requestNotificationPermissions, rescheduleAllHabitReminders, cancelAllHabitReminders, scheduleMidnightReset , scheduleMonkModeNotification, cancelMonkModeNotification } from '@/utils/notifications';
+import {
+  requestNotificationPermissions,
+  rescheduleAllHabitReminders,
+  cancelAllHabitReminders,
+  scheduleMidnightReset,
+} from '@/utils/notifications';
+import { startMonkMode, updateMonkMode, stopMonkMode } from '@/utils/monkMode';
 
 export default function ProfileScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { settings, updateSettings, habits, logs, getHabitsForDate, resetAllData, getLifetimeStats, canUseStreakFreeze } = useHabits();
+  const { settings, updateSettings, habits, resetAllData, getLifetimeStats, canUseStreakFreeze, getDailyScore } = useHabits();
   const [nameInput, setNameInput] = useState(settings.userName);
   const [nameSaved, setNameSaved] = useState(false);
 
@@ -34,14 +40,42 @@ export default function ProfileScreen() {
       const granted = await requestNotificationPermissions();
       if (!granted) {
         Alert.alert('Permission Required', 'Please enable notifications in your device settings.');
+        // Do not update notificationsEnabled — permission was denied
         return;
       }
+      // Permission granted — persist the enabled state immediately so the
+      // profile toggle reflects reality without requiring an app restart
+      updateSettings({ notificationsEnabled: true });
       await rescheduleAllHabitReminders(habits);
       await scheduleMidnightReset();
     } else {
       await cancelAllHabitReminders(habits);
+      updateSettings({ notificationsEnabled: false });
     }
-    updateSettings({ notificationsEnabled: val });
+  }
+
+  async function toggleMonkMode(val: boolean) {
+    updateSettings({ monkModeEnabled: val });
+    if (val) {
+      // Request notification permission first — foreground service needs it on Android 13+
+      const granted = await requestNotificationPermissions();
+      if (!granted) {
+        // Revert the toggle if permission was denied
+        updateSettings({ monkModeEnabled: false });
+        Alert.alert(
+          'Permission Required',
+          'Monk Mode needs notification permission to show the persistent focus notification.'
+        );
+        return;
+      }
+      // Compute remaining habits for today to show the correct count immediately
+      const today = new Date().toISOString().split('T')[0];
+      const score = getDailyScore(today);
+      const remaining = score.total - score.completed;
+      startMonkMode(remaining);
+    } else {
+      stopMonkMode();
+    }
   }
 
   function handleResetData() {
@@ -55,6 +89,7 @@ export default function ProfileScreen() {
           style: 'destructive',
           onPress: async () => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+            stopMonkMode();
             await resetAllData();
             setNameInput('');
           },
@@ -169,23 +204,7 @@ export default function ProfileScreen() {
             </View>
             <Switch
               value={settings.monkModeEnabled}
-              onValueChange={async (val) => {
-                  updateSettings({ monkModeEnabled: val });
-
-                  if (val) {
-                    const today = getTodayStr();
-                    const total = getHabitsForDate(today).length;
-                    const completed = logs.filter(
-                      l => l.date === today && l.status === "completed"
-                    ).length;
-                    const remaining = Math.max(0, total - completed);
-                    await scheduleMonkModeNotification(remaining);
-                  } else {
-                    await cancelMonkModeNotification();
-                  }
-
-                  Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                }}
+              onValueChange={toggleMonkMode}
               trackColor={{ true: colors.primary, false: colors.border }}
               thumbColor="#fff"
             />
