@@ -87,6 +87,12 @@ jobs:
         run: |
           ./gradlew :app:dependencies --configuration releaseCompileClasspath | grep -i protobuf || true
 
+
+      - name: Show generated proto
+        working-directory: artifacts/mobile/android
+        run: |
+          sed -n '1,40p' app/build/generated/source/proto/release/java/com/forgehabits/app/MonkModeState.java || true
+
       - name: Build APK
         working-directory: artifacts/mobile/android
         env:
