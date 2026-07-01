@@ -38,7 +38,6 @@ export default function TodayScreen() {
   const score = getDailyScore(today);
   const todayHabits = getHabitsForDate(today);
   const quote = useMemo(() => getDailyQuote(), [today]);
-import { updateMonkMode } from "@/utils/monkMode";
   const remaining = score.total - score.completed;
 
   const bestStreak = useMemo(() => {
@@ -67,7 +66,6 @@ import { updateMonkMode } from "@/utils/monkMode";
     if (settings.monkModeEnabled) {
       setTimeout(() => {
         const score = getDailyScore(today);
-        updateMonkMode(score.total - score.completed);
       }, 50);
     }
   }
