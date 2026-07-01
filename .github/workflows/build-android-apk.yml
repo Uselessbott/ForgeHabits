@@ -44,11 +44,20 @@ jobs:
         working-directory: artifacts/mobile
         run: pnpm exec expo prebuild --platform android
 
+      - name: Debug MonkMode files
+        working-directory: artifacts/mobile
+        run: |
+          echo "===== MonkMode ====="
+          find android/app/src/main/java -name "MonkMode*"
+          grep -R "MonkModePackage" android/app/src/main/java -n
+
       - name: Debug gradle.properties
         working-directory: artifacts/mobile
         run: |
           echo "===== gradle.properties ====="
           cat android/gradle.properties
+
+
 
       - name: Limit ABI
         working-directory: artifacts/mobile
