@@ -82,6 +82,11 @@ jobs:
           ./gradlew :app:dependencies --configuration releaseCompileClasspath > deps.txt
           grep -i protobuf deps.txt || true
 
+      - name: Show protobuf deps
+        working-directory: artifacts/mobile/android
+        run: |
+          ./gradlew :app:dependencies --configuration releaseCompileClasspath | grep -i protobuf || true
+
       - name: Build APK
         working-directory: artifacts/mobile/android
         env:
