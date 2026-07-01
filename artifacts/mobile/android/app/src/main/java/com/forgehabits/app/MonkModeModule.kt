@@ -1,57 +1,180 @@
 package com.forgehabits.app
 
-import android.content.Context
+import android.content.Intent
 import android.os.Build
-import android.util.Log
-import android.widget.Toast
+import com.facebook.react.bridge.Arguments
+import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
+import com.facebook.react.bridge.ReadableArray
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 
-/**
- * React Native native module that exposes startMonkMode, updateMonkMode,
- * and stopMonkMode to TypeScript.
- *
- * Uses the legacy bridge module pattern (ReactContextBaseJavaModule) which
- * is supported in new architecture via the compatibility shim — no codegen
- * spec file is required. This avoids adding a build-time codegen step.
- *
- * All three methods send an explicit Intent to MonkModeService. Using
- * startForegroundService (Android 8+) vs startService (Android <8) is
- * handled automatically.
- */
-class MonkModeModule(private val reactContext: ReactApplicationContext) :
-    ReactContextBaseJavaModule(reactContext) {
+class MonkModeModule(
+    private val reactApplicationContext: ReactApplicationContext
+) : ReactContextBaseJavaModule(reactApplicationContext) {
 
-    override fun getName(): String = "MonkModeModule"
+    override fun getName() = "MonkModeModule"
+
+    private val moduleScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    override fun onCatalystInstanceDestroy() {
+        super.onCatalystInstanceDestroy()
+        moduleScope.cancel()
+    }
+
+    @ReactMethod
+    fun startMonkModeSession(habitsArray: ReadableArray, promise: Promise) {
+        moduleScope.launch {
+            try {
+                val session = MonkModeSession.getInstance(reactApplicationContext)
+                val habits = MonkModeSession.habitsFromReadableArray(habitsArray)
+                session.startSession(habits)
+
+                val intent = Intent(
+                    reactApplicationContext,
+                    MonkModeService::class.java
+                ).apply {
+                    action = MonkModeService.ACTION_START
+                }
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    reactApplicationContext.startForegroundService(intent)
+                } else {
+                    reactApplicationContext.startService(intent)
+                }
+
+                promise.resolve(true)
+            } catch (e: Exception) {
+                promise.reject(
+                    "MONK_MODE_ERROR",
+                    "Failed to start session: ${e.message}",
+                    e
+                )
+            }
+        }
+    }
+
+    @ReactMethod
+    fun syncMonkModeSession(habitsArray: ReadableArray, promise: Promise) {
+        moduleScope.launch {
+            try {
+                val session = MonkModeSession.getInstance(reactApplicationContext)
+                val habits = MonkModeSession.habitsFromReadableArray(habitsArray)
+                session.syncFromRN(habits)
+
+                if (session.getValidState() != null) {
+                    val intent = Intent(
+                        reactApplicationContext,
+                        MonkModeService::class.java
+                    ).apply {
+                        action = MonkModeService.ACTION_UPDATE
+                    }
+
+                    reactApplicationContext.startService(intent)
+                }
+
+                promise.resolve(true)
+            } catch (e: Exception) {
+                promise.reject(
+                    "MONK_MODE_ERROR",
+                    "Failed to sync session: ${e.message}",
+                    e
+                )
+            }
+        }
+    }
+
+    @ReactMethod
+    fun stopMonkModeSession(promise: Promise) {
+        moduleScope.launch {
+            try {
+                MonkModeSession.getInstance(reactApplicationContext)
+                    .stopSession()
+
+                val intent = Intent(
+                    reactApplicationContext,
+                    MonkModeService::class.java
+                ).apply {
+                    action = MonkModeService.ACTION_STOP
+                }
+
+                reactApplicationContext.startService(intent)
+
+                promise.resolve(true)
+            } catch (e: Exception) {
+                promise.reject(
+                    "MONK_MODE_ERROR",
+                    "Failed to stop session: ${e.message}",
+                    e
+                )
+            }
+        }
+    }
+
+    @ReactMethod
+    fun getMonkModeSessionState(promise: Promise) {
+        moduleScope.launch {
+            try {
+                val session = MonkModeSession.getInstance(reactApplicationContext)
+                val state = session.getValidState()
+
+                if (state != null) {
+                    promise.resolve(
+                        MonkModeSession.stateToWritableMap(
+                            state,
+                            SystemDateProvider()
+                        )
+                    )
+                } else {
+                    val map = Arguments.createMap()
+                    map.putBoolean("isActive", false)
+                    map.putArray("habits", Arguments.createArray())
+                    promise.resolve(map)
+                }
+            } catch (e: Exception) {
+                promise.reject(
+                    "MONK_MODE_ERROR",
+                    "Failed to get session state: ${e.message}",
+                    e
+                )
+            }
+        }
+    }
+
+    // Legacy API
 
     @ReactMethod
     fun startMonkMode(remaining: Int) {
-        Log.d("MonkMode", "startMonkMode called: " + remaining)
-        Toast.makeText(reactContext, "startMonkMode called", Toast.LENGTH_LONG).show()
-        val intent = MonkModeService.buildStartIntent(reactContext, remaining)
-        startService(reactContext, intent)
+        // Deprecated
     }
 
     @ReactMethod
     fun updateMonkMode(remaining: Int) {
-        val intent = MonkModeService.buildUpdateIntent(reactContext, remaining)
-        startService(reactContext, intent)
+        // Deprecated
     }
 
     @ReactMethod
     fun stopMonkMode() {
-        val intent = MonkModeService.buildStopIntent(reactContext)
-        reactContext.stopService(intent)
-    }
+        moduleScope.launch {
+            try {
+                MonkModeSession.getInstance(reactApplicationContext)
+                    .stopSession()
 
-    // ── Private helpers ──────────────────────────────────────────────────────
+                val intent = Intent(
+                    reactApplicationContext,
+                    MonkModeService::class.java
+                ).apply {
+                    action = MonkModeService.ACTION_STOP
+                }
 
-    private fun startService(context: Context, intent: android.content.Intent) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            context.startForegroundService(intent)
-        } else {
-            context.startService(intent)
+                reactApplicationContext.startService(intent)
+            } catch (_: Exception) {
+            }
         }
     }
 }

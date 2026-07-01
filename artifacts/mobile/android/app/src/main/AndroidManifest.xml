@@ -55,5 +55,19 @@
             android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
             android:value="monk_mode"/>
     </service>
+  
+    <receiver
+        android:name=".MonkModeBootReceiver"
+        android:enabled="true"
+        android:exported="true">
+        <intent-filter>
+            <action android:name="android.intent.action.BOOT_COMPLETED" />
+        </intent-filter>
+    </receiver>
+
+    <receiver
+        android:name=".MonkModeActionReceiver"
+        android:exported="false" />
+
   </application>
 </manifest>
