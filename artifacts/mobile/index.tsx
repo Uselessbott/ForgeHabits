@@ -2,6 +2,8 @@ import 'expo-router/entry';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { registerWidgetTaskHandler } from 'react-native-android-widget';
 import { Habit, HabitLog } from './context/types';
+import { ForgeHabitsWidget } from './widgets/Widget';
+import { updateAllWidgets } from './widgets/index';
 
 // ─── Minimal helpers ────────────────────────────────────────────────
 
@@ -101,9 +103,8 @@ function getBestStreakToday(habits: Habit[], logs: HabitLog[], today: string): n
 // ─── Widget Task Handler ───────────────────────────────────────────────
 
 registerWidgetTaskHandler(async ({ widgetName, renderWidget }) => {
-  if (widgetName !== 'ForgeHabitsWidget') return;
-
-  const { ForgeHabitsWidget } = require('./widgets/Widget');
+  // Handle all 3 widget types
+  if (!widgetName.startsWith('ForgeHabits')) return;
 
   // Read raw data from AsyncStorage
   let habits: Habit[] = [];
@@ -141,8 +142,11 @@ registerWidgetTaskHandler(async ({ widgetName, renderWidget }) => {
   const remaining = total - completed;
   const streak = getBestStreakToday(habits, logs, today);
 
-  // Render all 3 widget types - the widget will pick based on widgetType prop
-  // The native widget class will use the first one, but we render the combined as default
+  // Determine which widget type to render based on the widget name
+  let widgetType: 'progress' | 'tasks' | 'combined' = 'combined';
+  if (widgetName === 'ForgeHabitsProgress') widgetType = 'progress';
+  else if (widgetName === 'ForgeHabitsTasks') widgetType = 'tasks';
+
   await renderWidget(
     <ForgeHabitsWidget
       completed={completed}
@@ -150,7 +154,10 @@ registerWidgetTaskHandler(async ({ widgetName, renderWidget }) => {
       remaining={remaining}
       streak={streak}
       habits={habitList}
-      widgetType="combined"  // Change to 'progress' or 'tasks' for different views
+      widgetType={widgetType}
     />
   );
 });
+
+// Also export the update functions for use in the app
+export { updateAllWidgets };
