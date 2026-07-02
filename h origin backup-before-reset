@@ -1,0 +1,20 @@
+* [33m363785b[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mbackup-before-reset[m[33m)[m Improve Monk Mode session sync and widget updates
+* [33ma7b380f[m[33m ([m[1;31morigin/backup-before-reset[m[33m)[m Rename MonkModeSession to MonkModeSessionManager
+* [33m124395f[m Debug Kotlin classpath
+* [33mb9c196b[m Always print generated proto
+* [33m4e2edaf[m Print generated MonkModeState
+* [33m3ddda5b[m Debug generated protobuf files
+* [33m02680c6[m Add proto debug step
+* [33m712f2a3[m Print generated proto
+* [33m5da06c6[m Fix Gradle dependencies block
+* [33mfedda4f[m Fix protobuf and datastore dependencies
+* [33m74f19da[m Print protobuf dependencies
+* [33m0c2ad95[m Debug protobuf dependencies
+* [33m62eab61[m Debug Android build
+* [33mad87bdd[m MonkMode Proto DataStore
+* [33mfe1e6d3[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m Update Monk Mode after habit completion
+* [33m05d4656[m Fix index.tsx import
+* [33mce86125[m Update Monk Mode notification after habit completion
+* [33mab2cc59[m Register MonkMode foreground service
+* [33mab5d635[m Add MonkMode toast
+* [33m4d11c4e[m Log MonkMode module calls

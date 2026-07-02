@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { registerWidgetTaskHandler } from 'react-native-android-widget';
 import { Habit, HabitLog } from './context/types';
 
-// ─── Minimal helpers (cannot import from utils — widget runs in separate context) ───
+// ─── Minimal helpers ────────────────────────────────────────────────
 
 function getTodayStr(): string {
   const d = new Date();
@@ -24,7 +24,6 @@ function isScheduledToday(habit: Habit, today: string): boolean {
   const created = parseDate(habit.createdAt);
   if (date < created) return false;
 
-  // Repetition bounds check
   const { repetition } = habit;
   if (repetition && repetition.type !== 'forever') {
     if (repetition.type === 'days') {
@@ -57,7 +56,6 @@ function isScheduledToday(habit: Habit, today: string): boolean {
 }
 
 function getBestStreakToday(habits: Habit[], logs: HabitLog[], today: string): number {
-  // Returns the highest current streak across all active habits
   let best = 0;
   for (const habit of habits) {
     if (habit.archived) continue;
@@ -100,14 +98,14 @@ function getBestStreakToday(habits: Habit[], logs: HabitLog[], today: string): n
   return best;
 }
 
-// ─── Widget task handler ───────────────────────────────────────────────────────
+// ─── Widget Task Handler ───────────────────────────────────────────────
 
 registerWidgetTaskHandler(async ({ widgetName, renderWidget }) => {
   if (widgetName !== 'ForgeHabitsWidget') return;
 
   const { ForgeHabitsWidget } = require('./widgets/Widget');
 
-  // Read raw data from AsyncStorage — same keys as HabitsContext
+  // Read raw data from AsyncStorage
   let habits: Habit[] = [];
   let logs: HabitLog[] = [];
   try {
@@ -118,7 +116,6 @@ registerWidgetTaskHandler(async ({ widgetName, renderWidget }) => {
     habits = rawHabits ? JSON.parse(rawHabits) : [];
     logs = rawLogs ? JSON.parse(rawLogs) : [];
   } catch {
-    // Render with defaults if storage fails
     await renderWidget(<ForgeHabitsWidget />);
     return;
   }
@@ -129,21 +126,31 @@ registerWidgetTaskHandler(async ({ widgetName, renderWidget }) => {
   const scheduled = habits.filter(h => isScheduledToday(h, today));
   const total = scheduled.length;
 
-  // Count completed (completed or frozen count as done)
-  const completed = scheduled.filter(h => {
-    const log = logs.find(l => l.habitId === h.id && l.date === today);
-    return log?.status === 'completed' || log?.status === 'frozen';
-  }).length;
+  // Build habit list with completion status
+  const habitList = scheduled.map(h => ({
+    id: h.id,
+    name: h.name,
+    completed: logs.some(l => 
+      l.habitId === h.id && 
+      l.date === today && 
+      (l.status === 'completed' || l.status === 'frozen')
+    ),
+  }));
 
+  const completed = habitList.filter(h => h.completed).length;
   const remaining = total - completed;
   const streak = getBestStreakToday(habits, logs, today);
 
+  // Render all 3 widget types - the widget will pick based on widgetType prop
+  // The native widget class will use the first one, but we render the combined as default
   await renderWidget(
     <ForgeHabitsWidget
       completed={completed}
       total={total}
       remaining={remaining}
       streak={streak}
+      habits={habitList}
+      widgetType="combined"  // Change to 'progress' or 'tasks' for different views
     />
   );
 });
