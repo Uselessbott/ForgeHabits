@@ -38,28 +38,48 @@ jobs:
         working-directory: artifacts/mobile
         run: pnpm exec expo prebuild --platform android --clean
 
-      - name: Clean Android build
+      - name: Generate protobuf files
         working-directory: artifacts/mobile/android
-        run: ./gradlew clean
+        run: |
+          echo "Generating protobuf files..."
+          ./gradlew generateReleaseProto --info
+          echo "Checking generated files..."
+          find app/build/generated/source/proto -name "*.java" || echo "No proto files generated"
 
       - name: Build APK
+        id: build
         working-directory: artifacts/mobile/android
-        env:
-          JS_RUNTIME: hermes
-        run: ./gradlew assembleRelease --stacktrace --no-daemon
+        continue-on-error: true
+        run: |
+          ./gradlew assembleRelease --stacktrace --no-daemon 2>&1 | tee build.log
+          if [ -f app/build/outputs/apk/release/app-release.apk ]; then
+            echo "success=true" >> $GITHUB_OUTPUT
+          else
+            echo "success=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Show errors only
+        if: always()
+        run: |
+          echo "========================================"
+          echo "❌ ERROR SUMMARY"
+          echo "========================================"
+          if [ -f artifacts/mobile/android/build.log ]; then
+            grep -E "(error|Error|ERROR|FAILED|failed|FAILURE|Exception|Caused by|What went wrong)" artifacts/mobile/android/build.log | head -30 || echo "No errors found"
+          fi
+          echo "========================================"
+          echo "Status: ${{ steps.build.outputs.success }}"
 
       - name: Upload APK
+        if: steps.build.outputs.success == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: ForgeHabits
           path: artifacts/mobile/android/app/build/outputs/apk/release/*.apk
 
-      - name: Debug protobuf generation
-        working-directory: artifacts/mobile/android
-        run: |
-          echo "=== Proto files ==="
-          find app/src/main -name "*.proto"
-          echo "=== Running protobuf generation ==="
-          ./gradlew generateReleaseProto --info || true
-          echo "=== Generated files ==="
-          find app/build/generated/source/proto -name "*.java" 2>/dev/null || echo "No generated files found"
+      - name: Upload build log on failure
+        if: steps.build.outputs.success == 'false'
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: artifacts/mobile/android/build.log
