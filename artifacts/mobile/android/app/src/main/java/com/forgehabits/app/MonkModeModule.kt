@@ -48,7 +48,10 @@ class MonkModeModule(
                     reactApplicationContext.startService(intent)
                 }
 
-                promise.resolve(true)
+                val map = Arguments.createMap()
+                map.putBoolean("isActive", false)
+                map.putArray("habits", Arguments.createArray())
+                promise.resolve(map)
             } catch (e: Exception) {
                 promise.reject(
                     "MONK_MODE_ERROR",
@@ -78,7 +81,10 @@ class MonkModeModule(
                     reactApplicationContext.startService(intent)
                 }
 
-                promise.resolve(true)
+                val map = Arguments.createMap()
+                map.putBoolean("isActive", false)
+                map.putArray("habits", Arguments.createArray())
+                promise.resolve(map)
             } catch (e: Exception) {
                 promise.reject(
                     "MONK_MODE_ERROR",
@@ -94,7 +100,7 @@ class MonkModeModule(
         moduleScope.launch {
             try {
                 MonkModeSessionManager.getInstance(reactApplicationContext)
-                    .stopSession()
+                    .stopSession(reactApplicationContext)
 
                 val intent = Intent(
                     reactApplicationContext,
@@ -105,7 +111,10 @@ class MonkModeModule(
 
                 reactApplicationContext.startService(intent)
 
-                promise.resolve(true)
+                val map = Arguments.createMap()
+                map.putBoolean("isActive", false)
+                map.putArray("habits", Arguments.createArray())
+                promise.resolve(map)
             } catch (e: Exception) {
                 promise.reject(
                     "MONK_MODE_ERROR",
@@ -163,7 +172,7 @@ class MonkModeModule(
         moduleScope.launch {
             try {
                 MonkModeSessionManager.getInstance(reactApplicationContext)
-                    .stopSession()
+                    .stopSession(reactApplicationContext)
 
                 val intent = Intent(
                     reactApplicationContext,

@@ -99,9 +99,6 @@ class MonkModeService : Service() {
                 }
             }
             ACTION_STOP -> {
-                serviceScope.launch {
-                    session.stopSession()
-                }
                 stopForeground(STOP_FOREGROUND_REMOVE)
                 stopSelf()
             }

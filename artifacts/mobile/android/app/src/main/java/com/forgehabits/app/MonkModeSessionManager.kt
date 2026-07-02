@@ -1,6 +1,7 @@
 package com.forgehabits.app
 
 import android.content.Context
+import android.content.Intent
 import androidx.datastore.core.DataStore
 import androidx.datastore.dataStore
 import com.facebook.react.bridge.Arguments
@@ -175,12 +176,18 @@ class MonkModeSessionManager private constructor(
         }
     }
 
-    suspend fun stopSession() {
+    suspend fun stopSession(context: Context? = null) {
         dataStore.updateData { current ->
             current.toBuilder()
                 .clear()
                 .setIsActive(false)
                 .build()
+        }
+
+        if (context != null) {
+            val intent = Intent(MonkModeService.ACTION_MONK_MODE_UPDATE)
+            intent.setPackage(context.packageName)
+            context.sendBroadcast(intent)
         }
     }
 }

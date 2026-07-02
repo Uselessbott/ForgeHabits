@@ -87,7 +87,10 @@ function save(key: string, data: unknown) {
 function refreshWidget() {
   requestWidgetUpdate({
     widgetName: 'ForgeHabitsWidget',
-    renderWidget: () => null,
+    renderWidget: async () => {
+      const { ForgeHabitsWidget } = await import('../widgets/Widget');
+      return <ForgeHabitsWidget />;
+    },
   }).catch(() => {});
 }
 export function HabitsProvider({ children }: { children: React.ReactNode }) {
