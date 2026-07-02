@@ -17,7 +17,6 @@ import {
   syncMonkModeSession,
   stopMonkModeSession,
   getMonkModeSessionState,
-import { updateAllWidgets } from "../widgets/index";
 } from "@/utils/monkMode";
 const KEYS = {
   HABITS: '@fg:habits',
