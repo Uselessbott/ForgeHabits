@@ -1,0 +1,65 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [main, backup-before-reset]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: "temurin"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 11
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Expo Prebuild
+        working-directory: artifacts/mobile
+        run: pnpm exec expo prebuild --platform android --clean
+
+      - name: Clean Android build
+        working-directory: artifacts/mobile/android
+        run: ./gradlew clean
+
+      - name: Build APK
+        working-directory: artifacts/mobile/android
+        env:
+          JS_RUNTIME: hermes
+        run: ./gradlew assembleRelease --stacktrace --no-daemon
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: ForgeHabits
+          path: artifacts/mobile/android/app/build/outputs/apk/release/*.apk
+
+      - name: Debug protobuf generation
+        working-directory: artifacts/mobile/android
+        run: |
+          echo "=== Proto files ==="
+          find app/src/main -name "*.proto"
+          echo "=== Running protobuf generation ==="
+          ./gradlew generateReleaseProto --info || true
+          echo "=== Generated files ==="
+          find app/build/generated/source/proto -name "*.java" 2>/dev/null || echo "No generated files found"
