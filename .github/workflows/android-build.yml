@@ -38,14 +38,6 @@ jobs:
         working-directory: artifacts/mobile
         run: pnpm exec expo prebuild --platform android --clean
 
-      - name: Generate protobuf files
-        working-directory: artifacts/mobile/android
-        run: |
-          echo "Generating protobuf files..."
-          ./gradlew generateReleaseProto --info
-          echo "Checking generated files..."
-          find app/build/generated/source/proto -name "*.java" || echo "No proto files generated"
-
       - name: Build APK
         id: build
         working-directory: artifacts/mobile/android
