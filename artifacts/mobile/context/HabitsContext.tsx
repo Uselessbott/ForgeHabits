@@ -85,10 +85,8 @@ function save(key: string, data: unknown) {
 // and re-renders with fresh data. Safe to call on any platform — the library
 // is a no-op on iOS/web.
 function refreshWidget() {
-  // Update all 3 widget types
   const widgetNames = ['ForgeHabitsProgress', 'ForgeHabitsTasks', 'ForgeHabitsCombined'];
   const widgetTypes = ['progress', 'tasks', 'combined'];
-  
   widgetNames.forEach((name, index) => {
     requestWidgetUpdate({
       widgetName: name,
@@ -98,8 +96,10 @@ function refreshWidget() {
       },
     }).catch(() => {});
   });
-} = await import('../widgets/Widget');
-      return <ForgeHabitsWidget />;
+} />;
+      },
+    }).catch(() => {});
+  });
     },
   }).catch(() => {});
 }
