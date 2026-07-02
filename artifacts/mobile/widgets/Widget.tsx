@@ -16,7 +16,7 @@ type Props = {
   widgetType?: 'progress' | 'tasks' | 'combined';
 };
 
-// Default empty state
+// Simple fallback widget
 function EmptyWidget() {
   return (
     <FlexWidget
@@ -34,68 +34,113 @@ function EmptyWidget() {
         style={{ fontSize: 18, color: '#ffffff' }}
       />
       <TextWidget
-        text="No habits for today"
+        text="Add some habits!"
         style={{ fontSize: 14, color: '#666688', marginTop: 8 }}
-      />
-      <TextWidget
-        text="Add some habits to get started!"
-        style={{ fontSize: 12, color: '#444466', marginTop: 4 }}
       />
     </FlexWidget>
   );
 }
 
-// Progress widget
-function ProgressWidgetContent({ completed = 0, total = 0, streak = 0 }: Props) {
+// Main widget component
+export function ForgeHabitsWidget(props: Props) {
+  const { completed = 0, total = 0, habits = [], streak = 0, widgetType = 'combined' } = props;
+
+  // If no habits, show empty state
+  if (total === 0) {
+    return <EmptyWidget />;
+  }
+
   const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
   const color = percentage >= 80 ? '#4CAF50' : percentage >= 50 ? '#FF9800' : '#f44336';
+  const displayHabits = habits.slice(0, widgetType === 'tasks' ? 4 : 3);
 
-  return (
-    <FlexWidget
-      style={{
-        width: 'match_parent',
-        height: 'match_parent',
-        backgroundColor: '#1a1a2e',
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: 16,
-      }}
-    >
+  // Progress widget
+  if (widgetType === 'progress') {
+    return (
       <FlexWidget
         style={{
-          width: 80,
-          height: 80,
-          borderRadius: 40,
-          backgroundColor: '#16213e',
+          width: 'match_parent',
+          height: 'match_parent',
+          backgroundColor: '#1a1a2e',
           justifyContent: 'center',
           alignItems: 'center',
-          borderWidth: 6,
-          borderColor: color,
+          padding: 16,
+        }}
+      >
+        <FlexWidget
+          style={{
+            width: 80,
+            height: 80,
+            borderRadius: 40,
+            backgroundColor: '#16213e',
+            justifyContent: 'center',
+            alignItems: 'center',
+            borderWidth: 6,
+            borderColor: color,
+          }}
+        >
+          <TextWidget
+            text={`${percentage}%`}
+            style={{ fontSize: 22, fontWeight: 'bold', color: '#ffffff' }}
+          />
+        </FlexWidget>
+        <TextWidget
+          text={`${completed}/${total} habits`}
+          style={{ fontSize: 14, color: '#8888aa', marginTop: 8 }}
+        />
+        <TextWidget
+          text={`🔥 ${streak} day streak`}
+          style={{ fontSize: 12, color: '#FF9800', marginTop: 4 }}
+        />
+      </FlexWidget>
+    );
+  }
+
+  // Tasks widget
+  if (widgetType === 'tasks') {
+    return (
+      <FlexWidget
+        style={{
+          width: 'match_parent',
+          height: 'match_parent',
+          backgroundColor: '#1a1a2e',
+          padding: 12,
+          flexDirection: 'column',
         }}
       >
         <TextWidget
-          text={`${percentage}%`}
-          style={{ fontSize: 22, fontWeight: 'bold', color: '#ffffff' }}
+          text={`📋 Today (${completed}/${total})`}
+          style={{ fontSize: 14, fontWeight: 'bold', color: '#ffffff', marginBottom: 8 }}
         />
+        {displayHabits.map((habit) => (
+          <FlexWidget
+            key={habit.id}
+            style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 3 }}
+          >
+            <TextWidget
+              text={habit.completed ? '✅' : '⬜'}
+              style={{ fontSize: 14, marginRight: 8 }}
+            />
+            <TextWidget
+              text={habit.name}
+              style={{
+                fontSize: 12,
+                color: habit.completed ? '#4CAF50' : '#ffffff',
+              }}
+            />
+          </FlexWidget>
+        ))}
+        {habits.length > 4 && (
+          <TextWidget
+            text={`+${habits.length - 4} more`}
+            style={{ fontSize: 11, color: '#666688', marginTop: 2 }}
+          />
+        )}
       </FlexWidget>
-      <TextWidget
-        text={`${completed}/${total} habits`}
-        style={{ fontSize: 14, color: '#8888aa', marginTop: 8 }}
-      />
-      <TextWidget
-        text={`🔥 ${streak} day streak`}
-        style={{ fontSize: 12, color: '#FF9800', marginTop: 4 }}
-      />
-    </FlexWidget>
-  );
-}
+    );
+  }
 
-// Tasks widget
-function TasksWidgetContent({ habits = [], completed = 0, total = 0 }: Props) {
-  const displayHabits = habits.slice(0, 4);
-
-  if (total === 0) return <EmptyWidget />;
-
+  // Combined widget (default)
   return (
     <FlexWidget
       style={{
@@ -106,58 +151,7 @@ function TasksWidgetContent({ habits = [], completed = 0, total = 0 }: Props) {
         flexDirection: 'column',
       }}
     >
-      <TextWidget
-        text={`📋 Today's Tasks (${completed}/${total})`}
-        style={{ fontSize: 14, fontWeight: 'bold', color: '#ffffff', marginBottom: 8 }}
-      />
-      {displayHabits.map((habit) => (
-        <FlexWidget
-          key={habit.id}
-          style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 4 }}
-        >
-          <TextWidget
-            text={habit.completed ? '✅' : '⬜'}
-            style={{ fontSize: 16, marginRight: 8 }}
-          />
-          <TextWidget
-            text={habit.name}
-            style={{
-              fontSize: 13,
-              color: habit.completed ? '#4CAF50' : '#ffffff',
-              textDecorationLine: habit.completed ? 'line-through' : 'none',
-              opacity: habit.completed ? 0.6 : 1,
-            }}
-          />
-        </FlexWidget>
-      ))}
-      {habits.length > 4 && (
-        <TextWidget
-          text={`+${habits.length - 4} more`}
-          style={{ fontSize: 12, color: '#666688', marginTop: 4 }}
-        />
-      )}
-    </FlexWidget>
-  );
-}
-
-// Combined widget
-function CombinedWidgetContent({ completed = 0, total = 0, habits = [], streak = 0 }: Props) {
-  const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
-  const color = percentage >= 80 ? '#4CAF50' : percentage >= 50 ? '#FF9800' : '#f44336';
-  const displayHabits = habits.slice(0, 3);
-
-  if (total === 0) return <EmptyWidget />;
-
-  return (
-    <FlexWidget
-      style={{
-        width: 'match_parent',
-        height: 'match_parent',
-        backgroundColor: '#1a1a2e',
-        padding: 12,
-        flexDirection: 'column',
-      }}
-    >
+      {/* Progress row */}
       <FlexWidget style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
         <FlexWidget
           style={{
@@ -188,22 +182,21 @@ function CombinedWidgetContent({ completed = 0, total = 0, habits = [], streak =
         </FlexWidget>
       </FlexWidget>
 
+      {/* Tasks list */}
       {displayHabits.map((habit) => (
         <FlexWidget
           key={habit.id}
-          style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 3 }}
+          style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 2 }}
         >
           <TextWidget
             text={habit.completed ? '✅' : '⬜'}
-            style={{ fontSize: 14, marginRight: 8 }}
+            style={{ fontSize: 13, marginRight: 8 }}
           />
           <TextWidget
             text={habit.name}
             style={{
               fontSize: 12,
               color: habit.completed ? '#4CAF50' : '#ffffff',
-              textDecorationLine: habit.completed ? 'line-through' : 'none',
-              opacity: habit.completed ? 0.6 : 1,
             }}
           />
         </FlexWidget>
@@ -211,24 +204,9 @@ function CombinedWidgetContent({ completed = 0, total = 0, habits = [], streak =
       {habits.length > 3 && (
         <TextWidget
           text={`+${habits.length - 3} more`}
-          style={{ fontSize: 11, color: '#666688', marginTop: 2 }}
+          style={{ fontSize: 10, color: '#666688', marginTop: 2 }}
         />
       )}
     </FlexWidget>
   );
-}
-
-// Main widget router - selects which widget to render
-export function ForgeHabitsWidget(props: Props) {
-  const { widgetType = 'combined' } = props;
-
-  switch (widgetType) {
-    case 'progress':
-      return <ProgressWidgetContent {...props} />;
-    case 'tasks':
-      return <TasksWidgetContent {...props} />;
-    case 'combined':
-    default:
-      return <CombinedWidgetContent {...props} />;
-  }
 }

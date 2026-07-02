@@ -1,9 +1,7 @@
 import 'expo-router/entry';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { registerWidgetTaskHandler } from 'react-native-android-widget';
-import { Habit, HabitLog } from './context/types';
 import { ForgeHabitsWidget } from './widgets/Widget';
-import { updateAllWidgets } from './widgets/index';
 
 // ─── Minimal helpers ────────────────────────────────────────────────
 
@@ -20,31 +18,11 @@ function parseDate(s: string): Date {
   return new Date(y, m - 1, d);
 }
 
-function isScheduledToday(habit: Habit, today: string): boolean {
+function isScheduledToday(habit: any, today: string): boolean {
   if (habit.archived) return false;
   const date = parseDate(today);
   const created = parseDate(habit.createdAt);
   if (date < created) return false;
-
-  const { repetition } = habit;
-  if (repetition && repetition.type !== 'forever') {
-    if (repetition.type === 'days') {
-      const end = new Date(created);
-      end.setDate(end.getDate() + repetition.count - 1);
-      if (date > end) return false;
-    } else if (repetition.type === 'weeks') {
-      const end = new Date(created);
-      end.setDate(end.getDate() + repetition.count * 7 - 1);
-      if (date > end) return false;
-    } else if (repetition.type === 'months') {
-      const end = new Date(created);
-      end.setMonth(end.getMonth() + repetition.count);
-      end.setDate(end.getDate() - 1);
-      if (date > end) return false;
-    } else if (repetition.type === 'until' && repetition.endDate) {
-      if (date > parseDate(repetition.endDate)) return false;
-    }
-  }
 
   const dow = date.getDay();
   const dom = date.getDate();
@@ -57,36 +35,22 @@ function isScheduledToday(habit: Habit, today: string): boolean {
   }
 }
 
-function getBestStreakToday(habits: Habit[], logs: HabitLog[], today: string): number {
+function getBestStreakToday(habits: any[], logs: any[], today: string): number {
   let best = 0;
   for (const habit of habits) {
     if (habit.archived) continue;
     let streak = 0;
-    const todayDate = parseDate(today);
-    const created = parseDate(habit.createdAt);
-    const cursor = new Date(todayDate);
+    const cursor = new Date(parseDate(today));
     let attempts = 0;
     while (attempts < 365) {
-      if (cursor < created) break;
-      const ds = [
-        cursor.getFullYear(),
-        String(cursor.getMonth() + 1).padStart(2, '0'),
-        String(cursor.getDate()).padStart(2, '0'),
-      ].join('-');
+      const ds = cursor.toISOString().split('T')[0];
       if (!isScheduledToday(habit, ds)) {
         cursor.setDate(cursor.getDate() - 1);
         attempts++;
         continue;
       }
-      const log = logs.find(l => l.habitId === habit.id && l.date === ds);
-      if (!log) {
-        if (ds === today) {
-          cursor.setDate(cursor.getDate() - 1);
-          attempts++;
-          continue;
-        }
-        break;
-      }
+      const log = logs.find((l: any) => l.habitId === habit.id && l.date === ds);
+      if (!log) break;
       if (log.status === 'completed' || log.status === 'frozen') {
         streak++;
       } else {
@@ -103,12 +67,10 @@ function getBestStreakToday(habits: Habit[], logs: HabitLog[], today: string): n
 // ─── Widget Task Handler ───────────────────────────────────────────────
 
 registerWidgetTaskHandler(async ({ widgetName, renderWidget }) => {
-  // Handle all 3 widget types
   if (!widgetName.startsWith('ForgeHabits')) return;
 
-  // Read raw data from AsyncStorage
-  let habits: Habit[] = [];
-  let logs: HabitLog[] = [];
+  let habits: any[] = [];
+  let logs: any[] = [];
   try {
     const [rawHabits, rawLogs] = await Promise.all([
       AsyncStorage.getItem('@fg:habits'),
@@ -122,27 +84,23 @@ registerWidgetTaskHandler(async ({ widgetName, renderWidget }) => {
   }
 
   const today = getTodayStr();
-
-  // Compute today's scheduled habits
-  const scheduled = habits.filter(h => isScheduledToday(h, today));
+  const scheduled = habits.filter((h: any) => isScheduledToday(h, today));
   const total = scheduled.length;
 
-  // Build habit list with completion status
-  const habitList = scheduled.map(h => ({
+  const habitList = scheduled.map((h: any) => ({
     id: h.id,
     name: h.name,
-    completed: logs.some(l => 
+    completed: logs.some((l: any) => 
       l.habitId === h.id && 
       l.date === today && 
       (l.status === 'completed' || l.status === 'frozen')
     ),
   }));
 
-  const completed = habitList.filter(h => h.completed).length;
+  const completed = habitList.filter((h: any) => h.completed).length;
   const remaining = total - completed;
   const streak = getBestStreakToday(habits, logs, today);
 
-  // Determine which widget type to render based on the widget name
   let widgetType: 'progress' | 'tasks' | 'combined' = 'combined';
   if (widgetName === 'ForgeHabitsProgress') widgetType = 'progress';
   else if (widgetName === 'ForgeHabitsTasks') widgetType = 'tasks';
@@ -158,6 +116,3 @@ registerWidgetTaskHandler(async ({ widgetName, renderWidget }) => {
     />
   );
 });
-
-// Also export the update functions for use in the app
-export { updateAllWidgets };

@@ -1,7 +1,6 @@
 import { widget } from 'react-native-android-widget';
 import { ForgeHabitsWidget } from './Widget';
 
-// Widget class names matching Android
 const WIDGET_CLASSES = {
   PROGRESS: 'com.forgehabits.app.widget.ProgressWidget',
   TASKS: 'com.forgehabits.app.widget.TasksWidget',
@@ -24,5 +23,4 @@ widget.registerWidget(ForgeHabitsWidget, {
   widgetClass: WIDGET_CLASSES.COMBINED,
 });
 
-// Export for use in app
 export { WIDGET_CLASSES };
