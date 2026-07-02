@@ -12,6 +12,7 @@ import {
 import { getCurrentStreak, getLongestStreak } from '@/utils/streaks';
 import { runDailyReset } from '@/utils/dailyReset';
 import { requestWidgetUpdate } from 'react-native-android-widget';
+import { WIDGET_CLASSES } from "../widgets/index";
 import {
   startMonkModeSession,
   syncMonkModeSession,
