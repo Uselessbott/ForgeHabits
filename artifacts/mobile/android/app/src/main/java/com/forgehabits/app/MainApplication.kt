@@ -17,17 +17,15 @@ import expo.modules.ApplicationLifecycleDispatcher
 import expo.modules.ReactNativeHostWrapper
 
 class MainApplication : Application(), ReactApplication {
-    init {
-        Thread.setDefaultUncaughtExceptionHandler { _, e ->
-            val trace = e.stackTraceToString()
-            val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
-                type = "text/plain"
-                putExtra(android.content.Intent.EXTRA_TEXT, trace)
-                addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+    companion object {
+        init {
+            Thread.setDefaultUncaughtExceptionHandler { _, e ->
+                val trace = e.stackTraceToString()
+                try {
+                    java.io.File("/data/local/tmp").mkdirs()
+                    java.io.File("/data/local/tmp/crash.txt").writeText(trace)
+                } catch (_: Exception) {}
             }
-            try {
-                startActivity(android.content.Intent.createChooser(intent, "ForgeHabits Crash"))
-            } catch (_: Exception) {}
         }
     }
 
