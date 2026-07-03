@@ -12,6 +12,7 @@ import {
 import { getCurrentStreak, getLongestStreak } from '@/utils/streaks';
 import { runDailyReset } from '@/utils/dailyReset';
 import { requestWidgetUpdate } from 'react-native-android-widget';
+import { updateAllWidgets } from '../app/widget/index';
 import {
   startMonkModeSession,
   syncMonkModeSession,
@@ -88,28 +89,6 @@ function save(key: string, data: unknown) {
   AsyncStorage.setItem(key, JSON.stringify(data)).catch(() => {});
 }
 
-// Refresh all 3 widgets with live data
-function refreshWidget() {
-  const today = getTodayStr();
-  const scheduled = habits.filter(h => !h.archived && isHabitScheduledForDate(h, today));
-  const completed = scheduled.filter(h => logs.some(l => l.habitId === h.id && l.date === today && (l.status === "completed" || l.status === "frozen"))).length;
-  const habitData = scheduled.map(h => ({
-    id: h.id,
-    name: h.name,
-    completed: logs.some(l => l.habitId === h.id && l.date === today && (l.status === "completed" || l.status === "frozen"))
-  }));
-  const streak = scheduled.reduce((max, h) => Math.max(max, getCurrentStreak(h, logs)), 0);
-  const data = {
-    totalHabits: scheduled.length,
-    completedHabits: completed,
-    habits: habitData,
-    streak: streak
-  };
-  try {
-    const { updateAllWidgets } = require("./widget/index");
-    updateAllWidgets(data);
-  } catch (_) {}
-}
 
 export function HabitsProvider({ children }: { children: React.ReactNode }) {
   const [habits, setHabits] = useState<Habit[]>([]);
@@ -225,6 +204,8 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
       sortOrder: habits.length,
     };
     setHabitsAndSave([...habits, h]);
+  refreshWidgetNow();
+  refreshWidgetNow();
   }
 
   function updateHabit(id: string, updates: Partial<Habit>) {
@@ -304,6 +285,7 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
         ),
       }));
       syncMonkModeSession(habitData).catch(() => {});
+        refreshWidgetNow();
             refreshWidget();
     }
   }
@@ -334,6 +316,11 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
   function updateSettings(updates: Partial<AppSettings>) {
     const ns = { ...settings, ...updates };
     setSettingsAndSave(ns);
+        if (Platform.OS === "android" && Platform.Version >= 33) {
+          const { PermissionsAndroid } = require("react-native");
+          const result = await PermissionsAndroid.request("android.permission.POST_NOTIFICATIONS");
+          if (result !== PermissionsAndroid.RESULTS.GRANTED) return;
+        }
     if (updates.monkModeEnabled === true) {
       const today = getTodayStr();
       const scheduled = habits.filter(
@@ -350,6 +337,7 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
         ),
       }));
       startMonkModeSession(habitData).catch(() => {});
+        refreshWidgetNow();
     }
     if (updates.monkModeEnabled === false) {
       stopMonkModeSession().catch(() => {});
@@ -598,6 +586,18 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
     );
   }
 
+  const refreshWidgetNow = () => {
+    const today = getTodayStr();
+    const scheduled = habits.filter(h => !h.archived && isHabitScheduledForDate(h, today));
+    const completed = scheduled.filter(h => logs.some(l => l.habitId === h.id && l.date === today && (l.status === "completed" || l.status === "frozen"))).length;
+    const habitData = scheduled.map(h => ({
+      id: h.id,
+      name: h.name,
+      completed: logs.some(l => l.habitId === h.id && l.date === today && (l.status === "completed" || l.status === "frozen"))
+    }));
+    const streak = scheduled.reduce((max, h) => Math.max(max, getCurrentStreak(h, logs)), 0);
+    updateAllWidgets({ totalHabits: scheduled.length, completedHabits: completed, habits: habitData, streak });
+  };
   return (
     <HabitsContext.Provider value={{
       habits, categories, logs, freezes, settings, isLoading,
