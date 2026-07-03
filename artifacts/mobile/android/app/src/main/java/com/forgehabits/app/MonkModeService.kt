@@ -53,18 +53,19 @@ class MonkModeService : Service() {
         session = MonkModeSessionManager.getInstance(this)
         createChannel()
 
-        // Start foreground immediately with a notification
+        // Post temporary notification immediately (Android requires startForeground
+        // within 5 seconds). The real notification replaces this within milliseconds.
         startForeground(NOTIFICATION_ID, buildTemporaryNotification())
 
-        // Check if there's a valid session
+        // Rebuild from DataStore if a valid session exists
         serviceScope.launch {
             val state = session.getValidState()
             if (state != null) {
                 updateNotification(state)
                 broadcastUpdate()
             } else {
-                // Keep the service running with a waiting notification
-                updateWaitingNotification()
+                stopForeground(STOP_FOREGROUND_REMOVE)
+                stopSelf()
             }
         }
     }
@@ -76,9 +77,6 @@ class MonkModeService : Service() {
                     val state = session.getValidState()
                     if (state != null) {
                         updateNotification(state)
-                        broadcastUpdate()
-                    } else {
-                        updateWaitingNotification()
                     }
                 }
             }
@@ -88,8 +86,6 @@ class MonkModeService : Service() {
                     if (state != null) {
                         updateNotification(state)
                         broadcastUpdate()
-                    } else {
-                        updateWaitingNotification()
                     }
                 }
             }
@@ -99,8 +95,6 @@ class MonkModeService : Service() {
                     if (state != null) {
                         updateNotification(state)
                         broadcastUpdate()
-                    } else {
-                        updateWaitingNotification()
                     }
                 }
             }
@@ -127,7 +121,7 @@ class MonkModeService : Service() {
             val channel = NotificationChannel(
                 CHANNEL_ID,
                 "Monk Mode",
-                NotificationManager.IMPORTANCE_HIGH
+                NotificationManager.IMPORTANCE_HIGH  // Changed from LOW to HIGH
             ).apply {
                 description = "Monk Mode active notification"
                 setSound(null, null)
@@ -149,19 +143,6 @@ class MonkModeService : Service() {
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
             .build()
-    }
-
-    private fun updateWaitingNotification() {
-        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("⏳ Monk Mode")
-            .setContentText("Waiting for habits...")
-            .setSmallIcon(R.drawable.ic_monk_mode)
-            .setOngoing(true)
-            .setOnlyAlertOnce(true)
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
-            .build()
-        notificationManager.notify(NOTIFICATION_ID, notification)
     }
 
     private suspend fun updateNotification(state: MonkModeState) {
@@ -225,13 +206,12 @@ class MonkModeService : Service() {
                     completePendingIntent
                 )
             }
-            allCompleted && totalCount > 0 -> {
+            allCompleted -> {
                 builder.setContentText("🎉 All habits completed!")
                 builder.setSubText("✅ $completedCount / $totalCount Complete")
             }
             else -> {
-                builder.setContentText("⏳ Waiting for habits...")
-                builder.setSubText("No active habits")
+                builder.setContentText("Loading habits...")
             }
         }
 
