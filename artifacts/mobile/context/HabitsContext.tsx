@@ -18,6 +18,7 @@ import {
   stopMonkModeSession,
   getMonkModeSessionState,
 } from "@/utils/monkMode";
+
 const KEYS = {
   HABITS: '@fg:habits',
   CATEGORIES: '@fg:categories',
@@ -25,6 +26,7 @@ const KEYS = {
   SETTINGS: '@fg:settings',
   FREEZES: '@fg:freezes',
 };
+
 const DEFAULT_SETTINGS: AppSettings = {
   userName: '',
   monkModeEnabled: false,
@@ -33,12 +35,14 @@ const DEFAULT_SETTINGS: AppSettings = {
   lastWeeklyReviewDate: '',
   theme: 'dark',
 };
+
 const DEFAULT_CATEGORIES: Category[] = [
   { id: 'cat_fitness', name: 'Fitness', emoji: '💪', order: 0, collapsed: false },
   { id: 'cat_learning', name: 'Learning', emoji: '📚', order: 1, collapsed: false },
   { id: 'cat_mindset', name: 'Mindset', emoji: '🧠', order: 2, collapsed: false },
   { id: 'cat_finance', name: 'Finance', emoji: '💰', order: 3, collapsed: false },
 ];
+
 interface HabitsContextType {
   habits: Habit[];
   categories: Category[];
@@ -77,13 +81,14 @@ interface HabitsContextType {
   getOverallConsistency: () => Array<{ date: string; color: 'none' | 'red' | 'yellow' | 'green' }>;
   searchHabits: (query: string) => Habit[];
 }
+
 const HabitsContext = createContext<HabitsContextType | null>(null);
+
 function save(key: string, data: unknown) {
   AsyncStorage.setItem(key, JSON.stringify(data)).catch(() => {});
 }
-// Asks Android to re-invoke the widget task handler so it re-reads AsyncStorage
-// and re-renders with fresh data. Safe to call on any platform — the library
-// is a no-op on iOS/web.
+
+// Refresh all 3 widgets
 function refreshWidget() {
   const widgetNames = ['ForgeHabitsProgress', 'ForgeHabitsTasks', 'ForgeHabitsCombined'];
   const widgetTypes = ['progress', 'tasks', 'combined'];
@@ -96,13 +101,8 @@ function refreshWidget() {
       },
     }).catch(() => {});
   });
-} />;
-      },
-    }).catch(() => {});
-  });
-    },
-  }).catch(() => {});
 }
+
 export function HabitsProvider({ children }: { children: React.ReactNode }) {
   const [habits, setHabits] = useState<Habit[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -111,6 +111,7 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
   const [isLoading, setIsLoading] = useState(true);
   const resetRanRef = useRef(false);
+
   useEffect(() => {
     (async () => {
       try {
@@ -137,7 +138,6 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
           setFreezes(loadedFreezes);
           if (newLogs.length !== loadedLogs.length) save(KEYS.LOGS, newLogs);
           if (updatedSettings.lastResetDate !== loadedSettings.lastResetDate) save(KEYS.SETTINGS, updatedSettings);
-          // Refresh widget on launch so it reflects current day after daily reset
           refreshWidget();
         }
       } catch {
@@ -149,32 +149,25 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (Platform.OS !== 'android' || isLoading) return;
-
     const reconcile = async () => {
       try {
         const sessionState = await getMonkModeSessionState();
         if (!sessionState?.isActive) return;
-
         const today = getTodayStr();
-
         if (sessionState.sessionDate !== today) {
           await stopMonkModeSession();
           return;
         }
-
         let needsUpdate = false;
         const updatedLogs = [...logs];
-
         sessionState.habits.forEach(habit => {
           if (!habit.completed) return;
-
           const exists = updatedLogs.some(
             l =>
               l.habitId === habit.id &&
               l.date === today &&
               (l.status === "completed" || l.status === "frozen")
           );
-
           if (!exists) {
             updatedLogs.push({
               id: generateId(),
@@ -186,15 +179,12 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
             needsUpdate = true;
           }
         });
-
         if (needsUpdate) {
           setLogsAndSave(updatedLogs);
         }
-
         const scheduled = habits.filter(
           h => !h.archived && isHabitScheduledForDate(h, today)
         );
-
         await syncMonkModeSession(
           scheduled.map(h => ({
             id: h.id,
@@ -209,16 +199,15 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
         );
       } catch {}
     };
-
     reconcile();
   }, [isLoading]);
 
-  // Refresh widget whenever habits or logs change on disk
   function setHabitsAndSave(h: Habit[]) { setHabits(h); save(KEYS.HABITS, h); refreshWidget(); }
   function setCatsAndSave(c: Category[]) { setCategories(c); save(KEYS.CATEGORIES, c); }
   function setLogsAndSave(l: HabitLog[]) { setLogs(l); save(KEYS.LOGS, l); refreshWidget(); }
   function setSettingsAndSave(s: AppSettings) { setSettings(s); save(KEYS.SETTINGS, s); }
   function setFreezesAndSave(f: StreakFreeze[]) { setFreezes(f); save(KEYS.FREEZES, f); }
+
   function createHabit(data: Omit<Habit, 'id' | 'createdAt' | 'archived' | 'sortOrder'>) {
     const h: Habit = {
       ...data,
@@ -229,46 +218,52 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
     };
     setHabitsAndSave([...habits, h]);
   }
+
   function updateHabit(id: string, updates: Partial<Habit>) {
     setHabitsAndSave(habits.map(h => h.id === id ? { ...h, ...updates } : h));
   }
+
   function deleteHabit(id: string) {
     setHabitsAndSave(habits.filter(h => h.id !== id));
     setLogsAndSave(logs.filter(l => l.habitId !== id));
     setFreezesAndSave(freezes.filter(f => f.habitId !== id));
   }
+
   function archiveHabit(id: string) { updateHabit(id, { archived: true }); }
   function restoreHabit(id: string) { updateHabit(id, { archived: false }); }
+
   function createCategory(data: Omit<Category, 'id' | 'order' | 'collapsed'>) {
     const c: Category = { ...data, id: generateId(), order: categories.length, collapsed: false };
     setCatsAndSave([...categories, c]);
   }
+
   function updateCategory(id: string, updates: Partial<Category>) {
     setCatsAndSave(categories.map(c => c.id === id ? { ...c, ...updates } : c));
   }
+
   function deleteCategory(id: string) {
     setCatsAndSave(categories.filter(c => c.id !== id));
     setHabitsAndSave(habits.map(h => h.categoryId === id ? { ...h, categoryId: '' } : h));
   }
+
   function reorderCategories(orderedIds: string[]) {
     const reordered = orderedIds
       .map((id, index) => { const cat = categories.find(c => c.id === id); return cat ? { ...cat, order: index } : null; })
       .filter((c): c is Category => c !== null);
     setCatsAndSave(reordered);
   }
+
   function toggleCategoryCollapsed(id: string) {
     setCatsAndSave(categories.map(c => c.id === id ? { ...c, collapsed: !c.collapsed } : c));
   }
+
   function markHabit(habitId: string, date: string) {
     const today = getTodayStr();
     if (date !== today) return;
-
     let newLogs: HabitLog[];
-
     const existing = logs.find(
       l => l.habitId === habitId && l.date === date
     );
-
     if (existing?.status === 'completed') {
       newLogs = logs.filter(
         l => !(l.habitId === habitId && l.date === date)
@@ -285,14 +280,11 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
         },
       ];
     }
-
     setLogsAndSave(newLogs);
-
     if (settings.monkModeEnabled) {
       const scheduled = habits.filter(
         h => !h.archived && isHabitScheduledForDate(h, today)
       );
-
       const habitData = scheduled.map(h => ({
         id: h.id,
         name: h.name,
@@ -303,7 +295,6 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
             (l.status === 'completed' || l.status === 'frozen')
         ),
       }));
-
       syncMonkModeSession(habitData).catch(() => {});
     }
   }
@@ -312,6 +303,7 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
     const month = getMonthStr(getTodayStr());
     return !freezes.some(f => f.month === month);
   }
+
   function applyStreakFreeze(): boolean {
     if (!canUseStreakFreeze()) return false;
     const month = getMonthStr(getTodayStr());
@@ -329,16 +321,15 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
     setFreezesAndSave(newFreezes);
     return true;
   }
+
   function updateSettings(updates: Partial<AppSettings>) {
     const ns = { ...settings, ...updates };
     setSettingsAndSave(ns);
-
     if (updates.monkModeEnabled === true) {
       const today = getTodayStr();
       const scheduled = habits.filter(
         h => !h.archived && isHabitScheduledForDate(h, today)
       );
-
       const habitData = scheduled.map(h => ({
         id: h.id,
         name: h.name,
@@ -349,14 +340,13 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
             (l.status === 'completed' || l.status === 'frozen')
         ),
       }));
-
       startMonkModeSession(habitData).catch(() => {});
     }
-
     if (updates.monkModeEnabled === false) {
       stopMonkModeSession().catch(() => {});
     }
   }
+
   async function resetAllData(): Promise<void> {
     await Promise.all([
       AsyncStorage.removeItem(KEYS.HABITS),
@@ -371,15 +361,17 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
     setSettings(DEFAULT_SETTINGS);
     setFreezes([]);
     save(KEYS.CATEGORIES, DEFAULT_CATEGORIES);
-    // Widget should show empty state after full reset
     refreshWidget();
   }
+
   function getHabitsForDate(date: string): Habit[] {
     return habits.filter(h => !h.archived && isHabitScheduledForDate(h, date));
   }
+
   function getLogForHabit(habitId: string, date: string): HabitLog | undefined {
     return logs.find(l => l.habitId === habitId && l.date === date);
   }
+
   function getDailyScore(date: string): DailyScore {
     const scheduled = getHabitsForDate(date);
     if (scheduled.length === 0) return { completed: 0, total: 0, percentage: 0, missed: 0 };
@@ -390,6 +382,7 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
     }).length;
     return { completed, total: scheduled.length, percentage: Math.round((completed / scheduled.length) * 100), missed };
   }
+
   function getDailyStats(date: string): DailyStats {
     const score = getDailyScore(date);
     const today = getTodayStr();
@@ -403,11 +396,13 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
       isLocked: date < today,
     };
   }
+
   function getStreakData(habitId: string): { current: number; longest: number } {
     const habit = habits.find(h => h.id === habitId);
     if (!habit) return { current: 0, longest: 0 };
     return { current: getCurrentStreak(habit, logs), longest: getLongestStreak(habit, logs) };
   }
+
   function getWeeklyTargetProgress(habitId: string, weekStart: string): { completed: number; target: number } {
     const habit = habits.find(h => h.id === habitId);
     if (!habit || habit.frequency !== 'weekly_target') return { completed: 0, target: 0 };
@@ -421,6 +416,7 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
     }
     return { completed, target: habit.weeklyTarget };
   }
+
   function getCalendarDay(date: string) {
     const today = getTodayStr();
     if (date > today) return { color: 'none' as const, completed: 0, total: 0, missed: 0, percentage: 0, streak: 0 };
@@ -436,6 +432,7 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
     const streak = scheduled.reduce((max, h) => Math.max(max, getCurrentStreak(h, logs)), 0);
     return { color, completed, total: scheduled.length, missed, percentage, streak };
   }
+
   function getLifetimeStats(): LifetimeStats {
     const activeHabits = habits.filter(h => !h.archived);
     const allScheduledLogs = logs.filter(l => l.status !== 'missed');
@@ -456,6 +453,7 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
       habitsCreated: habits.length,
     };
   }
+
   function getWeeklyStats(weekStart: string): WeeklyStats {
     const weekEnd = addDays(weekStart, 6);
     const activeHabits = habits.filter(h => !h.archived);
@@ -495,6 +493,7 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
         : 0,
     };
   }
+
   function getMonthlyStats(month: string): MonthlyStats {
     const [year, monthNum] = month.split('-').map(Number);
     const daysInMonth = new Date(year, monthNum, 0).getDate();
@@ -529,6 +528,7 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
       leastConsistentHabitId: sortedByRate[sortedByRate.length - 1] || '',
     };
   }
+
   function getWeeklyReview(): WeeklyStats & { summary: string } {
     const today = new Date();
     const lastSunday = new Date(today);
@@ -543,6 +543,7 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
     else summary = 'Rough week. Reset and recommit. Tomorrow starts now.';
     return { ...stats, summary };
   }
+
   function getLast7DaysData() {
     return Array.from({ length: 7 }, (_, i) => {
       const date = addDays(getTodayStr(), i - 6);
@@ -557,6 +558,7 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
       };
     });
   }
+
   function getHabitCompletionHistory(habitId: string, days: number) {
     const today = getTodayStr();
     return Array.from({ length: days }, (_, i) => {
@@ -565,6 +567,7 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
       return { date, completed: log?.status === 'completed' || log?.status === 'frozen' };
     });
   }
+
   function getOverallConsistency() {
     const today = getTodayStr();
     return Array.from({ length: 90 }, (_, i) => {
@@ -573,6 +576,7 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
       return { date, color };
     });
   }
+
   function searchHabits(query: string): Habit[] {
     if (!query.trim()) return habits.filter(h => !h.archived);
     const q = query.toLowerCase();
@@ -584,6 +588,7 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
       ),
     );
   }
+
   return (
     <HabitsContext.Provider value={{
       habits, categories, logs, freezes, settings, isLoading,
@@ -599,6 +604,7 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
     </HabitsContext.Provider>
   );
 }
+
 export function useHabits(): HabitsContextType {
   const ctx = useContext(HabitsContext);
   if (!ctx) throw new Error('useHabits must be used within HabitsProvider');
