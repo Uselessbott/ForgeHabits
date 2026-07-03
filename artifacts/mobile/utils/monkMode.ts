@@ -1,65 +1,39 @@
-import { NativeModules, Platform } from 'react-native';
+import { NativeModules } from 'react-native';
 
 const { MonkModeModule } = NativeModules;
 
-function isAvailable(): boolean {
-  return Platform.OS === 'android' && !!MonkModeModule;
-}
-
-export interface MonkHabitData {
-  id: string;
-  name: string;
-  completed: boolean;
-}
-
-export interface MonkModeSessionState {
-  isActive: boolean;
-  sessionDate: string;
-  habits: MonkHabitData[];
-  completedCount: number;
-  totalCount: number;
-  startedAt: number;
-}
-
-// Legacy API
-
-export function startMonkMode(_remaining: number): void {}
-
-export function updateMonkMode(_remaining: number): void {}
-
-export function stopMonkMode(): void {
-  if (isAvailable()) {
-    MonkModeModule.stopMonkMode();
+export const startMonkModeSession = async (habits: any[]): Promise<any> => {
+  try {
+    return await MonkModeModule.startMonkModeSession(habits);
+  } catch (error) {
+    console.error('Error starting Monk Mode:', error);
+    throw error;
   }
-}
+};
 
-// DataStore-backed API
-
-export async function startMonkModeSession(
-  habits: MonkHabitData[],
-): Promise<void> {
-  if (isAvailable()) {
-    await MonkModeModule.startMonkModeSession(habits);
+export const syncMonkModeSession = async (habits: any[]): Promise<any> => {
+  try {
+    return await MonkModeModule.syncMonkModeSession(habits);
+  } catch (error) {
+    console.error('Error syncing Monk Mode:', error);
+    throw error;
   }
-}
+};
 
-export async function syncMonkModeSession(
-  habits: MonkHabitData[],
-): Promise<void> {
-  if (isAvailable()) {
-    await MonkModeModule.syncMonkModeSession(habits);
+export const stopMonkModeSession = async (): Promise<any> => {
+  try {
+    return await MonkModeModule.stopMonkModeSession();
+  } catch (error) {
+    console.error('Error stopping Monk Mode:', error);
+    throw error;
   }
-}
+};
 
-export async function getMonkModeSessionState(): Promise<MonkModeSessionState | null> {
-  if (isAvailable()) {
-    return MonkModeModule.getMonkModeSessionState();
+export const getMonkModeSessionState = async (): Promise<any> => {
+  try {
+    return await MonkModeModule.getMonkModeSessionState();
+  } catch (error) {
+    console.error('Error getting Monk Mode state:', error);
+    throw error;
   }
-  return null;
-}
-
-export async function stopMonkModeSession(): Promise<void> {
-  if (isAvailable()) {
-    await MonkModeModule.stopMonkModeSession();
-  }
-}
+};

@@ -7,7 +7,7 @@ const WIDGET_CLASSES = {
   COMBINED: 'com.forgehabits.app.widget.CombinedWidget',
 };
 
-// Register all 3 widget types
+// Register all 3 widget types with unique widget names
 widget.registerWidget(ForgeHabitsWidget, {
   widgetName: 'ForgeHabitsProgress',
   widgetClass: WIDGET_CLASSES.PROGRESS,

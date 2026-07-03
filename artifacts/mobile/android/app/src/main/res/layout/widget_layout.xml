@@ -4,4 +4,16 @@
     android:layout_height="match_parent"
     android:background="#1a1a2e"
     android:id="@+id/widget_container">
+    
+    <!-- Fallback text in case RN fails to render -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:text="Loading..."
+        android:textColor="#666688"
+        android:textSize="14sp"
+        android:visibility="gone"
+        android:id="@+id/fallback_text" />
+        
 </FrameLayout>

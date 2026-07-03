@@ -322,6 +322,30 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
     return true;
   }
 
+  function updateSettings(updates: Partial<AppSettings>) {
+    const ns = { ...settings, ...updates };
+    setSettingsAndSave(ns);
+    if (updates.monkModeEnabled === true) {
+      const today = getTodayStr();
+      const scheduled = habits.filter(
+        h => !h.archived && isHabitScheduledForDate(h, today)
+      );
+      const habitData = scheduled.map(h => ({
+        id: h.id,
+        name: h.name,
+        completed: logs.some(
+          l =>
+            l.habitId === h.id &&
+            l.date === today &&
+            (l.status === 'completed' || l.status === 'frozen')
+        ),
+      }));
+      startMonkModeSession(habitData).catch(() => {});
+    }
+    if (updates.monkModeEnabled === false) {
+      stopMonkModeSession().catch(() => {});
+    }
+  }
 
   async function resetAllData(): Promise<void> {
     await Promise.all([

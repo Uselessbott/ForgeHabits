@@ -1,0 +1,37 @@
+  function updateSettings(updates: Partial<AppSettings>) {
+    const ns = { ...settings, ...updates };
+    setSettingsAndSave(ns);
+    if (updates.monkModeEnabled === true) {
+      const today = getTodayStr();
+      const scheduled = habits.filter(
+        h => !h.archived && isHabitScheduledForDate(h, today)
+      );
+      const habitData = scheduled.map(h => ({
+        id: h.id,
+        name: h.name,
+        completed: logs.some(
+          l =>
+            l.habitId === h.id &&
+            l.date === today &&
+            (l.status === 'completed' || l.status === 'frozen')
+        ),
+      }));
+      // Start Monk Mode and handle the promise properly
+      startMonkModeSession(habitData)
+        .then(() => {
+          console.log('Monk Mode started successfully');
+        })
+        .catch((error) => {
+          console.error('Failed to start Monk Mode:', error);
+        });
+    }
+    if (updates.monkModeEnabled === false) {
+      stopMonkModeSession()
+        .then(() => {
+          console.log('Monk Mode stopped');
+        })
+        .catch((error) => {
+          console.error('Failed to stop Monk Mode:', error);
+        });
+    }
+  }
