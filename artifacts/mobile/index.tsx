@@ -1,7 +1,4 @@
-import 'expo-router/entry';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { registerWidgetTaskHandler } from 'react-native-android-widget';
-import { ForgeHabitsWidget } from './widgets/Widget';
 
 // ─── Minimal helpers ────────────────────────────────────────────────
 
