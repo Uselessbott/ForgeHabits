@@ -21,6 +21,17 @@ class MainActivity : ReactActivity() {
     SplashScreenManager.registerOnActivity(this)
     // @generated end expo-splashscreen
     super.onCreate(null)
+        Thread.setDefaultUncaughtExceptionHandler { _, e ->
+            val trace = e.stackTraceToString()
+            val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                type = "text/plain"
+                putExtra(android.content.Intent.EXTRA_TEXT, trace)
+                addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            try {
+                startActivity(android.content.Intent.createChooser(intent, "Share crash log"))
+            } catch (_: Exception) {}
+        }
   }
 
   /**
