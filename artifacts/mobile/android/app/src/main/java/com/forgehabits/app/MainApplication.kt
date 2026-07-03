@@ -17,17 +17,6 @@ import expo.modules.ApplicationLifecycleDispatcher
 import expo.modules.ReactNativeHostWrapper
 
 class MainApplication : Application(), ReactApplication {
-    companion object {
-        init {
-            Thread.setDefaultUncaughtExceptionHandler { _, e ->
-                val trace = e.stackTraceToString()
-                try {
-                    java.io.File("/data/local/tmp").mkdirs()
-                    java.io.File("/data/local/tmp/crash.txt").writeText(trace)
-                } catch (_: Exception) {}
-            }
-        }
-    }
 
   override val reactNativeHost: ReactNativeHost = ReactNativeHostWrapper(
       this,
