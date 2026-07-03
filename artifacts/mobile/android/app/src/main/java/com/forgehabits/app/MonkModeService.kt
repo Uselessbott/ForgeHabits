@@ -121,12 +121,13 @@ class MonkModeService : Service() {
             val channel = NotificationChannel(
                 CHANNEL_ID,
                 "Monk Mode",
-                NotificationManager.IMPORTANCE_LOW
+                NotificationManager.IMPORTANCE_HIGH  // Changed from LOW to HIGH
             ).apply {
                 description = "Monk Mode active notification"
                 setSound(null, null)
                 enableVibration(false)
                 setShowBadge(false)
+                lockscreenVisibility = Notification.VISIBILITY_PUBLIC
             }
             notificationManager.createNotificationChannel(channel)
         }
@@ -134,12 +135,12 @@ class MonkModeService : Service() {
 
     private fun buildTemporaryNotification(): Notification {
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("\uD83D\uDD25 Monk Mode")
+            .setContentTitle("🔥 Monk Mode")
             .setContentText("Starting...")
             .setSmallIcon(R.drawable.ic_monk_mode)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
-            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
             .build()
     }
@@ -163,7 +164,7 @@ class MonkModeService : Service() {
         val totalCount = habits.size
         val allCompleted = totalCount > 0 && completedCount >= totalCount
 
-        // COMPLETE button — includes both habitId AND sessionDate for validation
+        // COMPLETE button
         val completeIntent = Intent(this, MonkModeActionReceiver::class.java).apply {
             putExtra("habitId", currentHabit?.id ?: "")
             putExtra("sessionDate", state.sessionDate)
@@ -187,27 +188,27 @@ class MonkModeService : Service() {
         )
 
         val builder = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("\uD83D\uDD25 Monk Mode")
+            .setContentTitle("🔥 Monk Mode")
             .setSmallIcon(R.drawable.ic_monk_mode)
             .setContentIntent(launchPendingIntent)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
-            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
 
         when {
             currentHabit != null -> {
-                builder.setContentText("\uD83D\uDCD6 ${currentHabit.name}")
-                builder.setSubText("\u2713 $completedCount / $totalCount Complete")
+                builder.setContentText("📖 ${currentHabit.name}")
+                builder.setSubText("✅ $completedCount / $totalCount Complete")
                 builder.addAction(
                     android.R.drawable.ic_input_add,
-                    "\u2713 COMPLETE",
+                    "✅ COMPLETE",
                     completePendingIntent
                 )
             }
             allCompleted -> {
-                builder.setContentText("\uD83C\uDF89 All habits completed!")
-                builder.setSubText("\u2713 $completedCount / $totalCount Complete")
+                builder.setContentText("🎉 All habits completed!")
+                builder.setSubText("✅ $completedCount / $totalCount Complete")
             }
             else -> {
                 builder.setContentText("Loading habits...")
@@ -216,7 +217,7 @@ class MonkModeService : Service() {
 
         builder.addAction(
             android.R.drawable.ic_delete,
-            "\u23F9 STOP",
+            "⏹ STOP",
             stopPendingIntent
         )
 

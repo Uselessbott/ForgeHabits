@@ -2,6 +2,28 @@ import 'expo-router/entry';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { registerWidgetTaskHandler } from 'react-native-android-widget';
 import { ForgeHabitsWidget } from './widgets/Widget';
+import { widget } from 'react-native-android-widget';
+import { WIDGET_CLASSES } from './widgets/index';
+
+// ─── Register all 3 widgets ──────────────────────────────────────
+
+// Progress Widget
+widget.registerWidget(ForgeHabitsWidget, {
+  widgetName: 'ForgeHabitsProgress',
+  widgetClass: WIDGET_CLASSES.PROGRESS,
+});
+
+// Tasks Widget
+widget.registerWidget(ForgeHabitsWidget, {
+  widgetName: 'ForgeHabitsTasks',
+  widgetClass: WIDGET_CLASSES.TASKS,
+});
+
+// Combined Widget
+widget.registerWidget(ForgeHabitsWidget, {
+  widgetName: 'ForgeHabitsCombined',
+  widgetClass: WIDGET_CLASSES.COMBINED,
+});
 
 // ─── Minimal helpers ────────────────────────────────────────────────
 
