@@ -296,6 +296,9 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
         ),
       }));
       syncMonkModeSession(habitData).catch(() => {});
+        requestWidgetUpdate({ widgetName: "ForgeHabitsProgress" });
+        requestWidgetUpdate({ widgetName: "ForgeHabitsTasks" });
+        requestWidgetUpdate({ widgetName: "ForgeHabitsCombined" });
     }
   }
 
