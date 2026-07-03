@@ -119,6 +119,12 @@ class MonkModeSessionManager private constructor(
                 .setStartedAt(dateProvider.now().toEpochMilli())
                 .addAllHabits(habits)
                 .build()
+
+        if (context != null) {
+            val intent = Intent(MonkModeService.ACTION_MONK_MODE_UPDATE)
+            intent.setPackage(context.packageName)
+            context.sendBroadcast(intent)
+        }
         }
     }
 
@@ -147,6 +153,12 @@ class MonkModeSessionManager private constructor(
                 .clearHabits()
                 .addAllHabits(habitsList)
                 .build()
+
+        if (context != null) {
+            val intent = Intent(MonkModeService.ACTION_MONK_MODE_UPDATE)
+            intent.setPackage(context.packageName)
+            context.sendBroadcast(intent)
+        }
         }
 
         return changed
@@ -173,6 +185,12 @@ class MonkModeSessionManager private constructor(
                 .clearHabits()
                 .addAllHabits(mergedHabits)
                 .build()
+
+        if (context != null) {
+            val intent = Intent(MonkModeService.ACTION_MONK_MODE_UPDATE)
+            intent.setPackage(context.packageName)
+            context.sendBroadcast(intent)
+        }
         }
     }
 
@@ -182,6 +200,12 @@ class MonkModeSessionManager private constructor(
                 .clear()
                 .setIsActive(false)
                 .build()
+
+        if (context != null) {
+            val intent = Intent(MonkModeService.ACTION_MONK_MODE_UPDATE)
+            intent.setPackage(context.packageName)
+            context.sendBroadcast(intent)
+        }
         }
 
         if (context != null) {

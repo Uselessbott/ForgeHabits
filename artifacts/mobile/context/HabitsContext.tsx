@@ -88,19 +88,27 @@ function save(key: string, data: unknown) {
   AsyncStorage.setItem(key, JSON.stringify(data)).catch(() => {});
 }
 
-// Refresh all 3 widgets
+// Refresh all 3 widgets with live data
 function refreshWidget() {
-  const widgetNames = ['ForgeHabitsProgress', 'ForgeHabitsTasks', 'ForgeHabitsCombined'];
-  const widgetTypes = ['progress', 'tasks', 'combined'];
-  widgetNames.forEach((name, index) => {
-    requestWidgetUpdate({
-      widgetName: name,
-      renderWidget: async () => {
-        const { ForgeHabitsWidget } = await import('../widgets/Widget');
-        return <ForgeHabitsWidget widgetType={widgetTypes[index] as 'progress' | 'tasks' | 'combined'} />;
-      },
-    }).catch(() => {});
-  });
+  const today = getTodayStr();
+  const scheduled = habits.filter(h => !h.archived && isHabitScheduledForDate(h, today));
+  const completed = scheduled.filter(h => logs.some(l => l.habitId === h.id && l.date === today && (l.status === "completed" || l.status === "frozen"))).length;
+  const habitData = scheduled.map(h => ({
+    id: h.id,
+    name: h.name,
+    completed: logs.some(l => l.habitId === h.id && l.date === today && (l.status === "completed" || l.status === "frozen"))
+  }));
+  const streak = scheduled.reduce((max, h) => Math.max(max, getCurrentStreak(h, logs)), 0);
+  const data = {
+    totalHabits: scheduled.length,
+    completedHabits: completed,
+    habits: habitData,
+    streak: streak
+  };
+  try {
+    const { updateAllWidgets } = require("./widget/index");
+    updateAllWidgets(data);
+  } catch (_) {}
 }
 
 export function HabitsProvider({ children }: { children: React.ReactNode }) {
@@ -296,6 +304,7 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
         ),
       }));
       syncMonkModeSession(habitData).catch(() => {});
+            refreshWidget();
     }
   }
 
