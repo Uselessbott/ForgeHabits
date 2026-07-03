@@ -1,6 +1,9 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React from "react";
 import { registerWidgetTaskHandler } from 'react-native-android-widget';
+import { registerRootComponent } from 'expo';
+import App from './App';
+import { ForgeHabitsWidget } from './widgets/Widget';
 
 // ─── Minimal helpers ────────────────────────────────────────────────
 
@@ -89,9 +92,9 @@ registerWidgetTaskHandler(async ({ widgetName, renderWidget }) => {
   const habitList = scheduled.map((h: any) => ({
     id: h.id,
     name: h.name,
-    completed: logs.some((l: any) => 
-      l.habitId === h.id && 
-      l.date === today && 
+    completed: logs.some((l: any) =>
+      l.habitId === h.id &&
+      l.date === today &&
       (l.status === 'completed' || l.status === 'frozen')
     ),
   }));
@@ -115,3 +118,7 @@ registerWidgetTaskHandler(async ({ widgetName, renderWidget }) => {
     />
   );
 });
+
+// ─── Register the main app component ──────────────────────────────────
+
+registerRootComponent(App);
