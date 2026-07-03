@@ -12,7 +12,6 @@ import {
 import { getCurrentStreak, getLongestStreak } from '@/utils/streaks';
 import { runDailyReset } from '@/utils/dailyReset';
 import { requestWidgetUpdate } from 'react-native-android-widget';
-import { updateAllWidgets } from '../app/widget/index';
 import {
   startMonkModeSession,
   syncMonkModeSession,
@@ -89,6 +88,20 @@ function save(key: string, data: unknown) {
   AsyncStorage.setItem(key, JSON.stringify(data)).catch(() => {});
 }
 
+// Refresh all 3 widgets
+function refreshWidget() {
+  const widgetNames = ['ForgeHabitsProgress', 'ForgeHabitsTasks', 'ForgeHabitsCombined'];
+  const widgetTypes = ['progress', 'tasks', 'combined'];
+  widgetNames.forEach((name, index) => {
+    requestWidgetUpdate({
+      widgetName: name,
+      renderWidget: async () => {
+        const { ForgeHabitsWidget } = await import('../widgets/Widget');
+        return <ForgeHabitsWidget widgetType={widgetTypes[index] as 'progress' | 'tasks' | 'combined'} />;
+      },
+    }).catch(() => {});
+  });
+}
 
 export function HabitsProvider({ children }: { children: React.ReactNode }) {
   const [habits, setHabits] = useState<Habit[]>([]);
@@ -204,8 +217,6 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
       sortOrder: habits.length,
     };
     setHabitsAndSave([...habits, h]);
-  refreshWidgetNow();
-  refreshWidgetNow();
   }
 
   function updateHabit(id: string, updates: Partial<Habit>) {
@@ -285,8 +296,6 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
         ),
       }));
       syncMonkModeSession(habitData).catch(() => {});
-        refreshWidgetNow();
-            refreshWidget();
     }
   }
 
@@ -332,7 +341,6 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
         ),
       }));
       startMonkModeSession(habitData).catch(() => {});
-        refreshWidgetNow();
     }
     if (updates.monkModeEnabled === false) {
       stopMonkModeSession().catch(() => {});
@@ -581,18 +589,6 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
     );
   }
 
-  const refreshWidgetNow = () => {
-    const today = getTodayStr();
-    const scheduled = habits.filter(h => !h.archived && isHabitScheduledForDate(h, today));
-    const completed = scheduled.filter(h => logs.some(l => l.habitId === h.id && l.date === today && (l.status === "completed" || l.status === "frozen"))).length;
-    const habitData = scheduled.map(h => ({
-      id: h.id,
-      name: h.name,
-      completed: logs.some(l => l.habitId === h.id && l.date === today && (l.status === "completed" || l.status === "frozen"))
-    }));
-    const streak = scheduled.reduce((max, h) => Math.max(max, getCurrentStreak(h, logs)), 0);
-    updateAllWidgets({ totalHabits: scheduled.length, completedHabits: completed, habits: habitData, streak });
-  };
   return (
     <HabitsContext.Provider value={{
       habits, categories, logs, freezes, settings, isLoading,
