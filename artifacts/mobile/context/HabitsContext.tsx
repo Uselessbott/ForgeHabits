@@ -316,11 +316,6 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
   function updateSettings(updates: Partial<AppSettings>) {
     const ns = { ...settings, ...updates };
     setSettingsAndSave(ns);
-        if (Platform.OS === "android" && Platform.Version >= 33) {
-          const { PermissionsAndroid } = require("react-native");
-          const result = await PermissionsAndroid.request("android.permission.POST_NOTIFICATIONS");
-          if (result !== PermissionsAndroid.RESULTS.GRANTED) return;
-        }
     if (updates.monkModeEnabled === true) {
       const today = getTodayStr();
       const scheduled = habits.filter(
