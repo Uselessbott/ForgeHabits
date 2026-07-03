@@ -12,6 +12,19 @@ import com.facebook.react.defaults.DefaultReactActivityDelegate
 import expo.modules.ReactActivityDelegateWrapper
 
 class MainActivity : ReactActivity() {
+    init {
+        Thread.setDefaultUncaughtExceptionHandler { _, e ->
+            val trace = e.stackTraceToString()
+            val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                type = "text/plain"
+                putExtra(android.content.Intent.EXTRA_TEXT, trace)
+                addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            try {
+                startActivity(android.content.Intent.createChooser(intent, "ForgeHabits Crash"))
+            } catch (_: Exception) {}
+        }
+    }
   override fun onCreate(savedInstanceState: Bundle?) {
     // Set the theme to AppTheme BEFORE onCreate to support
     // coloring the background, status bar, and navigation bar.
@@ -21,17 +34,6 @@ class MainActivity : ReactActivity() {
     SplashScreenManager.registerOnActivity(this)
     // @generated end expo-splashscreen
     super.onCreate(null)
-        Thread.setDefaultUncaughtExceptionHandler { _, e ->
-            val trace = e.stackTraceToString()
-            val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
-                type = "text/plain"
-                putExtra(android.content.Intent.EXTRA_TEXT, trace)
-                addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
-            }
-            try {
-                startActivity(android.content.Intent.createChooser(intent, "Share crash log"))
-            } catch (_: Exception) {}
-        }
   }
 
   /**

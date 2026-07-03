@@ -17,6 +17,19 @@ import expo.modules.ApplicationLifecycleDispatcher
 import expo.modules.ReactNativeHostWrapper
 
 class MainApplication : Application(), ReactApplication {
+    init {
+        Thread.setDefaultUncaughtExceptionHandler { _, e ->
+            val trace = e.stackTraceToString()
+            val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                type = "text/plain"
+                putExtra(android.content.Intent.EXTRA_TEXT, trace)
+                addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            try {
+                startActivity(android.content.Intent.createChooser(intent, "ForgeHabits Crash"))
+            } catch (_: Exception) {}
+        }
+    }
 
   override val reactNativeHost: ReactNativeHost = ReactNativeHostWrapper(
       this,
@@ -41,17 +54,6 @@ class MainApplication : Application(), ReactApplication {
 
   override fun onCreate() {
     super.onCreate()
-        Thread.setDefaultUncaughtExceptionHandler { _, e ->
-            val trace = e.stackTraceToString()
-            val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
-                type = "text/plain"
-                putExtra(android.content.Intent.EXTRA_TEXT, trace)
-                addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
-            }
-            try {
-                startActivity(android.content.Intent.createChooser(intent, "Share crash log"))
-            } catch (_: Exception) {}
-        }
     DefaultNewArchitectureEntryPoint.releaseLevel = try {
       ReleaseLevel.valueOf(BuildConfig.REACT_NATIVE_RELEASE_LEVEL.uppercase())
     } catch (e: IllegalArgumentException) {
