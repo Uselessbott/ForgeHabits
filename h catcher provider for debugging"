@@ -1,0 +1,10 @@
+[33m1540b84[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mbackup-before-reset[m[33m, [m[1;31morigin/backup-before-reset[m[33m)[m Add CrashCatcherProvider to catch all startup crashes
+[33m484d20a[m Early crash handler via companion object; proto source fix
+[33mb5333f9[m Catch crashes before onCreate + include proto sources for all build variants
+[33mc19d22f[m Switch crash logger to share intent
+[33m1ed3aa7[m fix: Register root component in index.tsx to prevent crash on launch
+[33mdce55f1[m fix: Add missing imports to index.tsx
+[33ma384a8e[m fix: Remove expo-router, fix App.tsx imports
+[33m5d7dfe8[m fix: Fix Monk Mode promise handling and session start
+[33m0078631[m fix: Fix widget rendering and monk mode notification
+[33mf32b086[m fix: Update HomeScreen with createHabit functionality
