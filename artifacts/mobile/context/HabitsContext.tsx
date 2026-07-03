@@ -284,15 +284,15 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
       }));
       syncMonkModeSession(habitData).catch(() => {});
         const todayStr = getTodayStr();
-        const scheduled = habits.filter(h => !h.archived && isHabitScheduledForDate(h, todayStr));
-        const completed = scheduled.filter(h => logs.some(l => l.habitId === h.id && l.date === todayStr && (l.status === "completed" || l.status === "frozen"))).length;
-        const habitDataForWidget = scheduled.map(h => ({
+        const scheduledForWidget = habits.filter(h => !h.archived && isHabitScheduledForDate(h, todayStr));
+        const completed = scheduledForWidget.filter(h => logs.some(l => l.habitId === h.id && l.date === todayStr && (l.status === "completed" || l.status === "frozen"))).length;
+        const habitDataForWidget = scheduledForWidget.map(h => ({
           id: h.id,
           name: h.name,
           completed: logs.some(l => l.habitId === h.id && l.date === todayStr && (l.status === "completed" || l.status === "frozen"))
         }));
-        const streak = scheduled.reduce((max, h) => Math.max(max, getCurrentStreak(h, logs)), 0);
-        updateAllWidgets({ totalHabits: scheduled.length, completedHabits: completed, habits: habitDataForWidget, streak });
+        const streak = scheduledForWidget.reduce((max, h) => Math.max(max, getCurrentStreak(h, logs)), 0);
+        updateAllWidgets({ totalHabits: scheduledForWidget.length, completedHabits: completed, habits: habitDataForWidget, streak });
     }
   }
 
