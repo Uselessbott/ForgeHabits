@@ -41,12 +41,12 @@ jobs:
       - name: Dump generated widget config
         working-directory: artifacts/mobile
         run: |
-          echo "=== AndroidManifest.xml (widget receivers) ==="
-          grep -B2 -A 15 "widget\|Widget" android/app/src/main/AndroidManifest.xml || true
-          echo "=== Generated widget info XML files ==="
-          find android/app/src/main/res -iname "*widget*" -exec echo "--- {} ---" \; -exec cat {} \;
-          echo "=== Generated widget provider Kotlin/Java files ==="
-          find android/app/src/main/java -iname "*widget*" -exec echo "--- {} ---" \; -exec cat {} \;
+          echo "=== Widget info XML files (excluding images) ==="
+          find android/app/src/main/res -iname "*widget*" -not -name "*.png" -exec echo "--- {} ---" \; -exec cat {} \;
+          echo "=== Widget provider Kotlin/Java files ==="
+          find android/app/src/main/java -iname "*widget*" -not -name "*.png" -exec echo "--- {} ---" \; -exec cat {} \;
+          echo "=== Widget-related strings.xml / values entries ==="
+          grep -rn "widget" android/app/src/main/res/values/ 2>/dev/null || true
 
       - name: Build APK
         id: build
