@@ -38,6 +38,16 @@ jobs:
         working-directory: artifacts/mobile
         run: pnpm exec expo prebuild --platform android
 
+      - name: Dump generated widget config
+        working-directory: artifacts/mobile
+        run: |
+          echo "=== AndroidManifest.xml (widget receivers) ==="
+          grep -B2 -A 15 "widget\|Widget" android/app/src/main/AndroidManifest.xml || true
+          echo "=== Generated widget info XML files ==="
+          find android/app/src/main/res -iname "*widget*" -exec echo "--- {} ---" \; -exec cat {} \;
+          echo "=== Generated widget provider Kotlin/Java files ==="
+          find android/app/src/main/java -iname "*widget*" -exec echo "--- {} ---" \; -exec cat {} \;
+
       - name: Build APK
         id: build
         working-directory: artifacts/mobile/android
