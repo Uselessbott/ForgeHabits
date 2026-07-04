@@ -33,7 +33,7 @@ class MonkModeModule(
             try {
                 val session = MonkModeSessionManager.getInstance(reactApplicationContext)
                 val habits = MonkModeSessionManager.habitsFromReadableArray(habitsArray)
-                session.startSession(habits)
+                session.startSession(habits, reactApplicationContext)
 
                 val intent = Intent(
                     reactApplicationContext,
@@ -68,7 +68,7 @@ class MonkModeModule(
             try {
                 val session = MonkModeSessionManager.getInstance(reactApplicationContext)
                 val habits = MonkModeSessionManager.habitsFromReadableArray(habitsArray)
-                session.syncFromRN(habits)
+                session.syncFromRN(habits, reactApplicationContext)
 
                 if (session.getValidState() != null) {
                     val intent = Intent(
@@ -77,7 +77,6 @@ class MonkModeModule(
                     ).apply {
                         action = MonkModeService.ACTION_UPDATE
                     }
-
                     reactApplicationContext.startService(intent)
                 }
 
@@ -156,7 +155,6 @@ class MonkModeModule(
     }
 
     // Legacy API
-
     @ReactMethod
     fun startMonkMode(remaining: Int) {
         // Deprecated

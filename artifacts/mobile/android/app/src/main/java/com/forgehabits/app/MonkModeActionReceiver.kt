@@ -33,7 +33,7 @@ class MonkModeActionReceiver : BroadcastReceiver() {
         scope.launch {
             try {
                 val session = MonkModeSessionManager.getInstance(context)
-                val changed = session.completeHabitById(habitId, sessionDate)
+                val changed = session.completeHabitById(habitId, sessionDate, context)
 
                 if (changed) {
                     val refreshIntent = Intent(context, MonkModeService::class.java).apply {

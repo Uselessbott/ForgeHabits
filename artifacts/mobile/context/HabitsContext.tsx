@@ -12,7 +12,6 @@ import {
 import { getCurrentStreak, getLongestStreak } from '@/utils/streaks';
 import { runDailyReset } from '@/utils/dailyReset';
 import { requestWidgetUpdate } from 'react-native-android-widget';
-import { updateAllWidgets } from "../app/widget/index";
 import {
   startMonkModeSession,
   syncMonkModeSession,
@@ -283,16 +282,6 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
         ),
       }));
       syncMonkModeSession(habitData).catch(() => {});
-        const todayStr = getTodayStr();
-        const scheduledForWidget = habits.filter(h => !h.archived && isHabitScheduledForDate(h, todayStr));
-        const completed = scheduledForWidget.filter(h => logs.some(l => l.habitId === h.id && l.date === todayStr && (l.status === "completed" || l.status === "frozen"))).length;
-        const habitDataForWidget = scheduledForWidget.map(h => ({
-          id: h.id,
-          name: h.name,
-          completed: logs.some(l => l.habitId === h.id && l.date === todayStr && (l.status === "completed" || l.status === "frozen"))
-        }));
-        const streak = scheduledForWidget.reduce((max, h) => Math.max(max, getCurrentStreak(h, logs)), 0);
-        updateAllWidgets({ totalHabits: scheduledForWidget.length, completedHabits: completed, habits: habitDataForWidget, streak });
     }
   }
 

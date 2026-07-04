@@ -1,9 +1,27 @@
-import { NativeModules, Platform } from 'react-native';
+import { NativeModules, Platform, PermissionsAndroid } from 'react-native';
 
 const { MonkModeModule } = NativeModules;
 
 function isAvailable(): boolean {
   return Platform.OS === 'android' && !!MonkModeModule;
+}
+
+async function ensureNotificationPermission(): Promise<void> {
+  if (Platform.OS !== 'android' || Platform.Version < 33) return;
+
+  try {
+    const granted = await PermissionsAndroid.check(
+      'android.permission.POST_NOTIFICATIONS' as any,
+    );
+    if (!granted) {
+      await PermissionsAndroid.request(
+        'android.permission.POST_NOTIFICATIONS' as any,
+      );
+    }
+  } catch {
+    // If the permission check/request itself fails, proceed anyway —
+    // the service will just run without a visible notification.
+  }
 }
 
 export interface MonkHabitData {
@@ -39,6 +57,7 @@ export async function startMonkModeSession(
   habits: MonkHabitData[],
 ): Promise<void> {
   if (isAvailable()) {
+    await ensureNotificationPermission();
     await MonkModeModule.startMonkModeSession(habits);
   }
 }

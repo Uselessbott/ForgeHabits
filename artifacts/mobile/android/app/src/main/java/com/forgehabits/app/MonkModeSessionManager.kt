@@ -110,7 +110,7 @@ class MonkModeSessionManager private constructor(
         return state.habitsList.any { !it.completed }
     }
 
-    suspend fun startSession(habits: List<ActiveHabit>) {
+    suspend fun startSession(habits: List<ActiveHabit>, context: Context? = null) {
         dataStore.updateData { current ->
             current.toBuilder()
                 .clear()
@@ -119,16 +119,16 @@ class MonkModeSessionManager private constructor(
                 .setStartedAt(dateProvider.now().toEpochMilli())
                 .addAllHabits(habits)
                 .build()
+        }
 
         if (context != null) {
             val intent = Intent(MonkModeService.ACTION_MONK_MODE_UPDATE)
             intent.setPackage(context.packageName)
             context.sendBroadcast(intent)
         }
-        }
     }
 
-    suspend fun completeHabitById(habitId: String, expectedSessionDate: String): Boolean {
+    suspend fun completeHabitById(habitId: String, expectedSessionDate: String, context: Context? = null): Boolean {
         var changed = false
 
         dataStore.updateData { current ->
@@ -153,18 +153,18 @@ class MonkModeSessionManager private constructor(
                 .clearHabits()
                 .addAllHabits(habitsList)
                 .build()
+        }
 
-        if (context != null) {
+        if (changed && context != null) {
             val intent = Intent(MonkModeService.ACTION_MONK_MODE_UPDATE)
             intent.setPackage(context.packageName)
             context.sendBroadcast(intent)
-        }
         }
 
         return changed
     }
 
-    suspend fun syncFromRN(rnHabits: List<ActiveHabit>) {
+    suspend fun syncFromRN(rnHabits: List<ActiveHabit>, context: Context? = null) {
         dataStore.updateData { current ->
             if (!current.isActive || current.sessionDate != dateProvider.today()) {
                 return@updateData current
@@ -185,12 +185,12 @@ class MonkModeSessionManager private constructor(
                 .clearHabits()
                 .addAllHabits(mergedHabits)
                 .build()
+        }
 
         if (context != null) {
             val intent = Intent(MonkModeService.ACTION_MONK_MODE_UPDATE)
             intent.setPackage(context.packageName)
             context.sendBroadcast(intent)
-        }
         }
     }
 
@@ -200,12 +200,6 @@ class MonkModeSessionManager private constructor(
                 .clear()
                 .setIsActive(false)
                 .build()
-
-        if (context != null) {
-            val intent = Intent(MonkModeService.ACTION_MONK_MODE_UPDATE)
-            intent.setPackage(context.packageName)
-            context.sendBroadcast(intent)
-        }
         }
 
         if (context != null) {
