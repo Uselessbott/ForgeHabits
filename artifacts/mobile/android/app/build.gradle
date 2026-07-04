@@ -209,16 +209,4 @@ protobuf {
     }
 }
 
-// Ensure proto generation runs before Java compilation
-tasks.withType(JavaCompile) {
-    dependsOn tasks.withType(com.google.protobuf.gradle.GenerateProtoTask)
-}
 
-// Fix for missing generated sources
-android {
-    sourceSets {
-        main {
-            java.srcDirs += 'build/generated/source/proto/release/java'
-        }
-    }
-}
