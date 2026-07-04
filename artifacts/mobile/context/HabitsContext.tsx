@@ -12,6 +12,7 @@ import {
 import { getCurrentStreak, getLongestStreak } from '@/utils/streaks';
 import { runDailyReset } from '@/utils/dailyReset';
 import { requestWidgetUpdate } from 'react-native-android-widget';
+import { ForgeHabitsWidget } from '@/widgets/Widget';
 import {
   startMonkModeSession,
   syncMonkModeSession,
@@ -188,9 +189,61 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
     reconcile();
   }, [isLoading]);
 
-  function setHabitsAndSave(h: Habit[]) { setHabits(h); save(KEYS.HABITS, h); refreshWidget(); }
+
+  function refreshWidget(habitsOverride, logsOverride) {
+    if (Platform.OS !== 'android') return;
+
+    const h = habitsOverride ?? habits;
+    const l = logsOverride ?? logs;
+    const today = getTodayStr();
+    const scheduled = h.filter(hb => !hb.archived && isHabitScheduledForDate(hb, today));
+    const total = scheduled.length;
+
+    const habitList = scheduled.map(hb => ({
+      id: hb.id,
+      name: hb.name,
+      completed: l.some(log =>
+        log.habitId === hb.id &&
+        log.date === today &&
+        (log.status === 'completed' || log.status === 'frozen')
+      ),
+    }));
+
+    const completed = habitList.filter(hb => hb.completed).length;
+    const remaining = total - completed;
+
+    let streak = 0;
+    scheduled.forEach(hb => {
+      const { current } = getStreakData(hb.id);
+      if (current > streak) streak = current;
+    });
+
+    const widgetConfigs = [
+      { name: 'ForgeHabitsProgress', type: 'progress' },
+      { name: 'ForgeHabitsTasks', type: 'tasks' },
+      { name: 'ForgeHabitsCombined', type: 'combined' },
+    ];
+
+    widgetConfigs.forEach(({ name, type }) => {
+      requestWidgetUpdate({
+        widgetName: name,
+        renderWidget: () => (
+          <ForgeHabitsWidget
+            completed={completed}
+            total={total}
+            remaining={remaining}
+            streak={streak}
+            habits={habitList}
+            widgetType={type}
+          />
+        ),
+      });
+    });
+  }
+
+  function setHabitsAndSave(h: Habit[]) { setHabits(h); save(KEYS.HABITS, h); refreshWidget(h); }
   function setCatsAndSave(c: Category[]) { setCategories(c); save(KEYS.CATEGORIES, c); }
-  function setLogsAndSave(l: HabitLog[]) { setLogs(l); save(KEYS.LOGS, l); refreshWidget(); }
+  function setLogsAndSave(l: HabitLog[]) { setLogs(l); save(KEYS.LOGS, l); refreshWidget(undefined, l); }
   function setSettingsAndSave(s: AppSettings) { setSettings(s); save(KEYS.SETTINGS, s); }
   function setFreezesAndSave(f: StreakFreeze[]) { setFreezes(f); save(KEYS.FREEZES, f); }
 

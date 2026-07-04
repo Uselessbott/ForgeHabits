@@ -50,11 +50,29 @@
         {
           "widgets": [
             {
-              "name": "ForgeHabitsWidget",
-              "label": "ForgeHabits",
-              "minWidth": "180dp",
+              "name": "ForgeHabitsProgress",
+              "label": "ForgeHabits Progress",
+              "minWidth": "110dp",
               "minHeight": "110dp",
-              "description": "Track your habits",
+              "description": "Circular progress ring",
+              "previewImage": "./assets/images/icon.png",
+              "updatePeriodMillis": 1800000
+            },
+            {
+              "name": "ForgeHabitsTasks",
+              "label": "ForgeHabits Tasks",
+              "minWidth": "180dp",
+              "minHeight": "180dp",
+              "description": "Today's task list",
+              "previewImage": "./assets/images/icon.png",
+              "updatePeriodMillis": 1800000
+            },
+            {
+              "name": "ForgeHabitsCombined",
+              "label": "ForgeHabits",
+              "minWidth": "250dp",
+              "minHeight": "180dp",
+              "description": "Progress + tasks",
               "previewImage": "./assets/images/icon.png",
               "updatePeriodMillis": 1800000
             }

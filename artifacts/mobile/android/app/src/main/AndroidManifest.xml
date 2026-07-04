@@ -45,33 +45,6 @@
       </intent-filter>
     </activity>
 
-    <!-- Widget 1: Progress (circular) -->
-    <receiver android:name=".widget.ProgressWidget" android:exported="false" android:label="ForgeHabits Progress">
-      <intent-filter>
-        <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
-        <action android:name="com.forgehabits.app.WIDGET_CLICK"/>
-      </intent-filter>
-      <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_progress_info"/>
-    </receiver>
-
-    <!-- Widget 2: Tasks list -->
-    <receiver android:name=".widget.TasksWidget" android:exported="false" android:label="ForgeHabits Tasks">
-      <intent-filter>
-        <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
-        <action android:name="com.forgehabits.app.WIDGET_CLICK"/>
-      </intent-filter>
-      <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_tasks_info"/>
-    </receiver>
-
-    <!-- Widget 3: Combined (progress + tasks) -->
-    <receiver android:name=".widget.CombinedWidget" android:exported="false" android:label="ForgeHabits Combined">
-      <intent-filter>
-        <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
-        <action android:name="com.forgehabits.app.WIDGET_CLICK"/>
-      </intent-filter>
-      <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_combined_info"/>
-    </receiver>
-
     <service android:name=".MonkModeService" android:enabled="true" android:exported="false" android:foregroundServiceType="specialUse">
       <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="monk_mode"/>
     </service>
