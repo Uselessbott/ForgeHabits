@@ -31,11 +31,37 @@ function EmptyWidget() {
     >
       <TextWidget
         text="🔥 ForgeHabits"
-        style={{ fontSize: 18, color: '#ffffff' }}
+        style={{ fontSize: 16, color: '#ffffff' }}
       />
       <TextWidget
         text="Add some habits!"
-        style={{ fontSize: 14, color: '#666688', marginTop: 8 }}
+        style={{ fontSize: 12, color: '#666688', marginTop: 6 }}
+      />
+    </FlexWidget>
+  );
+}
+
+function HabitRow({ habit }: { habit: HabitItem }) {
+  return (
+    <FlexWidget
+      clickAction="TOGGLE_HABIT"
+      clickActionData={{ habitId: habit.id }}
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 3,
+      }}
+    >
+      <TextWidget
+        text={habit.completed ? '✅' : '⬜'}
+        style={{ fontSize: 13, marginRight: 8 }}
+      />
+      <TextWidget
+        text={habit.name}
+        style={{
+          fontSize: 12,
+          color: habit.completed ? '#4CAF50' : '#ffffff',
+        }}
       />
     </FlexWidget>
   );
@@ -45,7 +71,6 @@ function EmptyWidget() {
 export function ForgeHabitsWidget(props: Props) {
   const { completed = 0, total = 0, habits = [], streak = 0, widgetType = 'combined' } = props;
 
-  // If no habits, show empty state
   if (total === 0) {
     return <EmptyWidget />;
   }
@@ -64,33 +89,33 @@ export function ForgeHabitsWidget(props: Props) {
           backgroundColor: '#1a1a2e',
           justifyContent: 'center',
           alignItems: 'center',
-          padding: 16,
+          padding: 10,
         }}
       >
         <FlexWidget
           style={{
-            width: 80,
-            height: 80,
-            borderRadius: 40,
+            width: 64,
+            height: 64,
+            borderRadius: 32,
             backgroundColor: '#16213e',
             justifyContent: 'center',
             alignItems: 'center',
-            borderWidth: 6,
+            borderWidth: 5,
             borderColor: color,
           }}
         >
           <TextWidget
             text={`${percentage}%`}
-            style={{ fontSize: 22, fontWeight: 'bold', color: '#ffffff' }}
+            style={{ fontSize: 16, fontWeight: 'bold', color: '#ffffff' }}
           />
         </FlexWidget>
         <TextWidget
           text={`${completed}/${total} habits`}
-          style={{ fontSize: 14, color: '#8888aa', marginTop: 8 }}
+          style={{ fontSize: 11, color: '#8888aa', marginTop: 6 }}
         />
         <TextWidget
           text={`🔥 ${streak} day streak`}
-          style={{ fontSize: 12, color: '#FF9800', marginTop: 4 }}
+          style={{ fontSize: 10, color: '#FF9800', marginTop: 2 }}
         />
       </FlexWidget>
     );
@@ -110,30 +135,15 @@ export function ForgeHabitsWidget(props: Props) {
       >
         <TextWidget
           text={`📋 Today (${completed}/${total})`}
-          style={{ fontSize: 14, fontWeight: 'bold', color: '#ffffff', marginBottom: 8 }}
+          style={{ fontSize: 13, fontWeight: 'bold', color: '#ffffff', marginBottom: 6 }}
         />
         {displayHabits.map((habit) => (
-          <FlexWidget
-            key={habit.id}
-            style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 3 }}
-          >
-            <TextWidget
-              text={habit.completed ? '✅' : '⬜'}
-              style={{ fontSize: 14, marginRight: 8 }}
-            />
-            <TextWidget
-              text={habit.name}
-              style={{
-                fontSize: 12,
-                color: habit.completed ? '#4CAF50' : '#ffffff',
-              }}
-            />
-          </FlexWidget>
+          <HabitRow key={habit.id} habit={habit} />
         ))}
         {habits.length > 4 && (
           <TextWidget
             text={`+${habits.length - 4} more`}
-            style={{ fontSize: 11, color: '#666688', marginTop: 2 }}
+            style={{ fontSize: 10, color: '#666688', marginTop: 2 }}
           />
         )}
       </FlexWidget>
@@ -152,12 +162,12 @@ export function ForgeHabitsWidget(props: Props) {
       }}
     >
       {/* Progress row */}
-      <FlexWidget style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+      <FlexWidget style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
         <FlexWidget
           style={{
-            width: 50,
-            height: 50,
-            borderRadius: 25,
+            width: 44,
+            height: 44,
+            borderRadius: 22,
             backgroundColor: '#16213e',
             justifyContent: 'center',
             alignItems: 'center',
@@ -167,39 +177,24 @@ export function ForgeHabitsWidget(props: Props) {
         >
           <TextWidget
             text={`${percentage}%`}
-            style={{ fontSize: 14, fontWeight: 'bold', color: '#ffffff' }}
+            style={{ fontSize: 12, fontWeight: 'bold', color: '#ffffff' }}
           />
         </FlexWidget>
-        <FlexWidget style={{ flexDirection: 'column', marginLeft: 12 }}>
+        <FlexWidget style={{ flexDirection: 'column', marginLeft: 10 }}>
           <TextWidget
             text={`${completed}/${total} done`}
-            style={{ fontSize: 14, color: '#ffffff' }}
+            style={{ fontSize: 13, color: '#ffffff' }}
           />
           <TextWidget
             text={`🔥 ${streak} day streak`}
-            style={{ fontSize: 12, color: '#FF9800' }}
+            style={{ fontSize: 11, color: '#FF9800' }}
           />
         </FlexWidget>
       </FlexWidget>
 
       {/* Tasks list */}
       {displayHabits.map((habit) => (
-        <FlexWidget
-          key={habit.id}
-          style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 2 }}
-        >
-          <TextWidget
-            text={habit.completed ? '✅' : '⬜'}
-            style={{ fontSize: 13, marginRight: 8 }}
-          />
-          <TextWidget
-            text={habit.name}
-            style={{
-              fontSize: 12,
-              color: habit.completed ? '#4CAF50' : '#ffffff',
-            }}
-          />
-        </FlexWidget>
+        <HabitRow key={habit.id} habit={habit} />
       ))}
       {habits.length > 3 && (
         <TextWidget
