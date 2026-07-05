@@ -41,32 +41,6 @@ function EmptyWidget() {
   );
 }
 
-function HabitRow({ habit }: { habit: HabitItem }) {
-  return (
-    <FlexWidget
-      clickAction="TOGGLE_HABIT"
-      clickActionData={{ habitId: habit.id }}
-      style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: 3,
-      }}
-    >
-      <TextWidget
-        text={habit.completed ? '✅' : '⬜'}
-        style={{ fontSize: 13, marginRight: 8 }}
-      />
-      <TextWidget
-        text={habit.name}
-        style={{
-          fontSize: 12,
-          color: habit.completed ? '#4CAF50' : '#ffffff',
-        }}
-      />
-    </FlexWidget>
-  );
-}
-
 // Main widget component
 export function ForgeHabitsWidget(props: Props) {
   const { completed = 0, total = 0, habits = [], streak = 0, widgetType = 'combined' } = props;
@@ -138,7 +112,21 @@ export function ForgeHabitsWidget(props: Props) {
           style={{ fontSize: 13, fontWeight: 'bold', color: '#ffffff', marginBottom: 6 }}
         />
         {displayHabits.map((habit) => (
-          <HabitRow key={habit.id} habit={habit} />
+          <FlexWidget
+            key={habit.id}
+            clickAction="TOGGLE_HABIT"
+            clickActionData={{ habitId: habit.id }}
+            style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 3 }}
+          >
+            <TextWidget
+              text={habit.completed ? '✅' : '⬜'}
+              style={{ fontSize: 13, marginRight: 8 }}
+            />
+            <TextWidget
+              text={habit.name}
+              style={{ fontSize: 12, color: habit.completed ? '#4CAF50' : '#ffffff' }}
+            />
+          </FlexWidget>
         ))}
         {habits.length > 4 && (
           <TextWidget
@@ -161,7 +149,6 @@ export function ForgeHabitsWidget(props: Props) {
         flexDirection: 'column',
       }}
     >
-      {/* Progress row */}
       <FlexWidget style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
         <FlexWidget
           style={{
@@ -192,9 +179,22 @@ export function ForgeHabitsWidget(props: Props) {
         </FlexWidget>
       </FlexWidget>
 
-      {/* Tasks list */}
       {displayHabits.map((habit) => (
-        <HabitRow key={habit.id} habit={habit} />
+        <FlexWidget
+          key={habit.id}
+          clickAction="TOGGLE_HABIT"
+          clickActionData={{ habitId: habit.id }}
+          style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 2 }}
+        >
+          <TextWidget
+            text={habit.completed ? '✅' : '⬜'}
+            style={{ fontSize: 13, marginRight: 8 }}
+          />
+          <TextWidget
+            text={habit.name}
+            style={{ fontSize: 12, color: habit.completed ? '#4CAF50' : '#ffffff' }}
+          />
+        </FlexWidget>
       ))}
       {habits.length > 3 && (
         <TextWidget
