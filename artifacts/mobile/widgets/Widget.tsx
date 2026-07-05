@@ -44,8 +44,8 @@ function EmptyWidget() {
 function HabitRow({ habit }: { habit: HabitItem }) {
   return (
     <FlexWidget
-      // clickAction="TOGGLE_HABIT"
-      // clickActionData={{ habitId: habit.id }}
+      clickAction="TOGGLE_HABIT"
+      clickActionData={{ habitId: habit.id }}
       style={{
         flexDirection: 'row',
         alignItems: 'center',

@@ -68,30 +68,25 @@ function generateLogId(): string {
   return `log_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 }
 
-// Toggle today's completion for a habit directly in AsyncStorage.
-// Mirrors the shape HabitsContext / markHabit uses for HabitLog.
 async function toggleHabitCompletion(habitId: string): Promise<void> {
   const today = getTodayStr();
   const rawLogs = await AsyncStorage.getItem('@fg:logs');
   const logs: any[] = rawLogs ? JSON.parse(rawLogs) : [];
 
   const existingIndex = logs.findIndex(
-    (l) => l.habitId === habitId && l.date === today
+    (l: any) => l.habitId === habitId && l.date === today
   );
 
   let updatedLogs: any[];
   if (existingIndex >= 0 && logs[existingIndex].status === 'completed') {
-    // Already completed -> uncheck (remove today's log)
-    updatedLogs = logs.filter((_, i) => i !== existingIndex);
+    updatedLogs = logs.filter((_: any, i: number) => i !== existingIndex);
   } else if (existingIndex >= 0) {
-    // Log exists but not completed (e.g. missed/frozen) -> mark completed
-    updatedLogs = logs.map((l, i) =>
+    updatedLogs = logs.map((l: any, i: number) =>
       i === existingIndex
         ? { ...l, status: 'completed', completedAt: new Date().toISOString() }
         : l
     );
   } else {
-    // No log yet -> create a completed one
     updatedLogs = [
       ...logs,
       {
@@ -107,7 +102,19 @@ async function toggleHabitCompletion(habitId: string): Promise<void> {
   await AsyncStorage.setItem('@fg:logs', JSON.stringify(updatedLogs));
 }
 
-async function computeWidgetProps(widgetName: string) {
+const ALL_WIDGET_NAMES = ['ForgeHabitsProgress', 'ForgeHabitsTasks', 'ForgeHabitsCombined'];
+
+// ── Widget Task Handler ──────────────────────────────────────────────────
+
+registerWidgetTaskHandler(async ({ widgetName, renderWidget, widgetAction, clickAction, clickActionData }: any) => {
+  if (!widgetName.startsWith('ForgeHabits')) return;
+
+  if (widgetAction === 'WIDGET_CLICK' && clickAction === 'TOGGLE_HABIT' && clickActionData?.habitId) {
+    await toggleHabitCompletion(clickActionData.habitId);
+    // fall through below to re-render the widget that was tapped with fresh data,
+    // then also nudge the other two widgets so progress/streak stay in sync.
+  }
+
   let habits: any[] = [];
   let logs: any[] = [];
   try {
@@ -118,7 +125,8 @@ async function computeWidgetProps(widgetName: string) {
     habits = rawHabits ? JSON.parse(rawHabits) : [];
     logs = rawLogs ? JSON.parse(rawLogs) : [];
   } catch {
-    return null;
+    await renderWidget(<ForgeHabitsWidget />);
+    return;
   }
 
   const today = getTodayStr();
@@ -128,11 +136,10 @@ async function computeWidgetProps(widgetName: string) {
   const habitList = scheduled.map((h: any) => ({
     id: h.id,
     name: h.name,
-    completed: logs.some(
-      (l: any) =>
-        l.habitId === h.id &&
-        l.date === today &&
-        (l.status === 'completed' || l.status === 'frozen')
+    completed: logs.some((l: any) =>
+      l.habitId === h.id &&
+      l.date === today &&
+      (l.status === 'completed' || l.status === 'frozen')
     ),
   }));
 
@@ -144,62 +151,37 @@ async function computeWidgetProps(widgetName: string) {
   if (widgetName === 'ForgeHabitsProgress') widgetType = 'progress';
   else if (widgetName === 'ForgeHabitsTasks') widgetType = 'tasks';
 
-  return { completed, total, remaining, streak, habitList, widgetType };
-}
-
-const ALL_WIDGET_NAMES = ['ForgeHabitsProgress', 'ForgeHabitsTasks', 'ForgeHabitsCombined'];
-
-async function refreshAllWidgets() {
-  for (const name of ALL_WIDGET_NAMES) {
-    const props = await computeWidgetProps(name);
-    if (!props) continue;
-    await requestWidgetUpdate({
-      widgetName: name,
-      renderWidget: () => (
-        <ForgeHabitsWidget
-          completed={props.completed}
-          total={props.total}
-          remaining={props.remaining}
-          streak={props.streak}
-          habits={props.habitList}
-          widgetType={props.widgetType}
-        />
-      ),
-    });
-  }
-}
-
-// ── Widget Task Handler ──────────────────────────────────────────────────
-
-registerWidgetTaskHandler(async (widgetInfo) => {
-  const { widgetName, renderWidget, widgetAction } = widgetInfo;
-  if (!widgetName.startsWith('ForgeHabits')) return;
-
-  if (widgetAction === 'WIDGET_CLICK') {
-    const { clickAction, clickActionData } = widgetInfo as any;
-    if (clickAction === 'TOGGLE_HABIT' && clickActionData?.habitId) {
-      await toggleHabitCompletion(clickActionData.habitId);
-      // Refresh every widget so progress/streak stay consistent everywhere,
-      // not just the one that was tapped.
-      await refreshAllWidgets();
-      return;
-    }
-  }
-
-  const props = await computeWidgetProps(widgetName);
-  if (!props) {
-    await renderWidget(<ForgeHabitsWidget />);
-    return;
-  }
-
   await renderWidget(
     <ForgeHabitsWidget
-      completed={props.completed}
-      total={props.total}
-      remaining={props.remaining}
-      streak={props.streak}
-      habits={props.habitList}
-      widgetType={props.widgetType}
+      completed={completed}
+      total={total}
+      remaining={remaining}
+      streak={streak}
+      habits={habitList}
+      widgetType={widgetType}
     />
   );
+
+  if (widgetAction === 'WIDGET_CLICK' && clickAction === 'TOGGLE_HABIT') {
+    // Keep the other two widgets in sync after a tap.
+    for (const otherName of ALL_WIDGET_NAMES) {
+      if (otherName === widgetName) continue;
+      let otherType: 'progress' | 'tasks' | 'combined' = 'combined';
+      if (otherName === 'ForgeHabitsProgress') otherType = 'progress';
+      else if (otherName === 'ForgeHabitsTasks') otherType = 'tasks';
+      await requestWidgetUpdate({
+        widgetName: otherName,
+        renderWidget: () => (
+          <ForgeHabitsWidget
+            completed={completed}
+            total={total}
+            remaining={remaining}
+            streak={streak}
+            habits={habitList}
+            widgetType={otherType}
+          />
+        ),
+      });
+    }
+  }
 });
