@@ -125,7 +125,7 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
           setFreezes(loadedFreezes);
           if (newLogs.length !== loadedLogs.length) save(KEYS.LOGS, newLogs);
           if (updatedSettings.lastResetDate !== loadedSettings.lastResetDate) save(KEYS.SETTINGS, updatedSettings);
-          refreshWidget();
+          refreshWidget(loadedHabits, newLogs);
         }
       } catch {
         setCategories(DEFAULT_CATEGORIES);
@@ -400,7 +400,7 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
     setSettings(DEFAULT_SETTINGS);
     setFreezes([]);
     save(KEYS.CATEGORIES, DEFAULT_CATEGORIES);
-    refreshWidget();
+    refreshWidget(loadedHabits, newLogs);
   }
 
   function getHabitsForDate(date: string): Habit[] {

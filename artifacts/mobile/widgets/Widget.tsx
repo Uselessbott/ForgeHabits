@@ -24,6 +24,7 @@ function EmptyWidget() {
         width: 'match_parent',
         height: 'match_parent',
         backgroundColor: '#1a1a2e',
+        borderRadius: 24,
         justifyContent: 'center',
         alignItems: 'center',
         padding: 16,
@@ -61,6 +62,7 @@ export function ForgeHabitsWidget(props: Props) {
           width: 'match_parent',
           height: 'match_parent',
           backgroundColor: '#1a1a2e',
+        borderRadius: 24,
           justifyContent: 'center',
           alignItems: 'center',
           padding: 10,
@@ -103,6 +105,7 @@ export function ForgeHabitsWidget(props: Props) {
           width: 'match_parent',
           height: 'match_parent',
           backgroundColor: '#1a1a2e',
+        borderRadius: 24,
           padding: 12,
           flexDirection: 'column',
         }}
@@ -145,6 +148,7 @@ export function ForgeHabitsWidget(props: Props) {
         width: 'match_parent',
         height: 'match_parent',
         backgroundColor: '#1a1a2e',
+        borderRadius: 24,
         padding: 12,
         flexDirection: 'column',
       }}
