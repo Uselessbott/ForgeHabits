@@ -118,10 +118,21 @@ registerWidgetTaskHandler(async ({ widgetName, renderWidget, widgetAction, click
   let habits: any[] = [];
   let logs: any[] = [];
   try {
-    const [rawHabits, rawLogs] = await Promise.all([
+    let [rawHabits, rawLogs] = await Promise.all([
       AsyncStorage.getItem('@fg:habits'),
       AsyncStorage.getItem('@fg:logs'),
     ]);
+    // On a fresh widget placement (cold start / headless), the native
+    // storage bridge can occasionally answer before it's fully warmed up,
+    // returning null even though data exists on disk. Retry once shortly
+    // after before falling back to the empty state.
+    if (!rawHabits) {
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      [rawHabits, rawLogs] = await Promise.all([
+        AsyncStorage.getItem('@fg:habits'),
+        AsyncStorage.getItem('@fg:logs'),
+      ]);
+    }
     habits = rawHabits ? JSON.parse(rawHabits) : [];
     logs = rawLogs ? JSON.parse(rawLogs) : [];
   } catch {
