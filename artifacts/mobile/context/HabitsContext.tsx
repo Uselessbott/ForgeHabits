@@ -12,6 +12,7 @@ import {
 import { getCurrentStreak, getLongestStreak } from '@/utils/streaks';
 import { runDailyReset } from '@/utils/dailyReset';
 import { requestWidgetUpdate } from 'react-native-android-widget';
+import * as Notifications from 'expo-notifications';
 import { ForgeHabitsWidget } from '@/widgets/Widget';
 import {
   startMonkModeSession,
@@ -118,13 +119,21 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
         if (!resetRanRef.current) {
           resetRanRef.current = true;
           const { newLogs, updatedSettings } = runDailyReset(loadedHabits, loadedLogs, loadedSettings);
+          let finalSettings = updatedSettings;
+          try {
+            const permResult = await Notifications.getPermissionsAsync();
+            const actuallyGranted = permResult.status === 'granted';
+            if (actuallyGranted !== updatedSettings.notificationsEnabled) {
+              finalSettings = { ...updatedSettings, notificationsEnabled: actuallyGranted };
+            }
+          } catch {}
           setHabits(loadedHabits);
           setCategories(loadedCategories);
           setLogs(newLogs);
-          setSettings(updatedSettings);
+          setSettings(finalSettings);
           setFreezes(loadedFreezes);
           if (newLogs.length !== loadedLogs.length) save(KEYS.LOGS, newLogs);
-          if (updatedSettings.lastResetDate !== loadedSettings.lastResetDate) save(KEYS.SETTINGS, updatedSettings);
+          if (finalSettings !== loadedSettings) save(KEYS.SETTINGS, finalSettings);
           refreshWidget(loadedHabits, newLogs);
         }
       } catch {
@@ -139,7 +148,16 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
     const reconcile = async () => {
       try {
         const sessionState = await getMonkModeSessionState();
-        if (!sessionState?.isActive) return;
+        if (!sessionState?.isActive) {
+          // Native side may have auto-stopped the session (all habits done,
+          // or it expired). Reflect that in the Profile toggle too.
+          if (settings.monkModeEnabled) {
+            const updated = { ...settings, monkModeEnabled: false };
+            setSettings(updated);
+            save(KEYS.SETTINGS, updated);
+          }
+          return;
+        }
         const today = getTodayStr();
         if (sessionState.sessionDate !== today) {
           await stopMonkModeSession();

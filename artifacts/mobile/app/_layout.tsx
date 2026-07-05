@@ -65,11 +65,7 @@ export default function RootLayout() {
 
   useEffect(() => {
     setupNotificationChannel().then(() => {
-      requestNotificationPermissions().then(granted => {
-        if (granted) {
-          testNotification();
-        }
-      });
+      requestNotificationPermissions();
     });
   }, []);
 
