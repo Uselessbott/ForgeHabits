@@ -13,7 +13,7 @@ import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { HabitsProvider } from '@/context/HabitsContext';
+import { HabitsProvider, useHabits } from '@/context/HabitsContext';
 import {
   setupNotificationChannel,
   requestNotificationPermissions,
@@ -24,6 +24,16 @@ import {
 SplashScreen.preventAutoHideAsync();
 
 function RootLayoutNav() {
+  const { updateSettings } = useHabits();
+
+  useEffect(() => {
+    setupNotificationChannel().then(() => {
+      requestNotificationPermissions().then(granted => {
+        updateSettings({ notificationsEnabled: granted });
+      });
+    });
+  }, []);
+
   return (
     <Stack
       screenOptions={{
@@ -62,12 +72,6 @@ export default function RootLayout() {
       SplashScreen.hideAsync();
     }
   }, [fontsLoaded, fontError]);
-
-  useEffect(() => {
-    setupNotificationChannel().then(() => {
-      requestNotificationPermissions();
-    });
-  }, []);
 
   if (!fontsLoaded && !fontError) return null;
 

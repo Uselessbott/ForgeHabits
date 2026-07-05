@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
-import { Platform } from 'react-native';
+import { Platform, AppState } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   Habit, Category, HabitLog, AppSettings, DailyScore,
@@ -205,6 +205,14 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
       } catch {}
     };
     reconcile();
+
+    const subscription = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active') {
+        reconcile();
+      }
+    });
+
+    return () => subscription.remove();
   }, [isLoading]);
 
 
