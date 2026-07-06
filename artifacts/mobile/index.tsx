@@ -13,6 +13,13 @@ function getTodayStr(): string {
   return `${y}-${m}-${day}`;
 }
 
+function formatDateStr(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 function parseDate(s: string): Date {
   const [y, m, d] = s.split('-').map(Number);
   return new Date(y, m - 1, d);
@@ -102,7 +109,39 @@ async function toggleHabitCompletion(habitId: string): Promise<void> {
   await AsyncStorage.setItem('@fg:logs', JSON.stringify(updatedLogs));
 }
 
-const ALL_WIDGET_NAMES = ['ForgeHabitsProgress', 'ForgeHabitsTasks', 'ForgeHabitsCombined'];
+// Builds a day-by-day completion-percentage history for the heatmap widget.
+// weeks * 7 days, most recent day last, oldest first.
+function buildHeatmapHistory(habits: any[], logs: any[], today: string, weeks: number) {
+  const totalDays = weeks * 7;
+  const history: { date: string; pct: number; hasData: boolean }[] = [];
+  const cursor = parseDate(today);
+  cursor.setDate(cursor.getDate() - (totalDays - 1));
+
+  for (let i = 0; i < totalDays; i++) {
+    const ds = formatDateStr(cursor);
+    const scheduled = habits.filter((h: any) => isScheduledToday(h, ds));
+    const total = scheduled.length;
+    const completedCount = scheduled.filter((h: any) =>
+      logs.some((l: any) =>
+        l.habitId === h.id && l.date === ds && (l.status === 'completed' || l.status === 'frozen')
+      )
+    ).length;
+    const pct = total > 0 ? completedCount / total : 0;
+    history.push({ date: ds, pct, hasData: total > 0 });
+    cursor.setDate(cursor.getDate() + 1);
+  }
+
+  return history;
+}
+
+const ALL_WIDGET_NAMES = ['ForgeHabitsProgress', 'ForgeHabitsTasks', 'ForgeHabitsCombined', 'ForgeHabitsHeatmap'];
+
+function widgetTypeFor(widgetName: string): 'progress' | 'tasks' | 'combined' | 'heatmap' {
+  if (widgetName === 'ForgeHabitsProgress') return 'progress';
+  if (widgetName === 'ForgeHabitsTasks') return 'tasks';
+  if (widgetName === 'ForgeHabitsHeatmap') return 'heatmap';
+  return 'combined';
+}
 
 // ── Widget Task Handler ──────────────────────────────────────────────────
 
@@ -111,8 +150,6 @@ registerWidgetTaskHandler(async ({ widgetName, renderWidget, widgetAction, click
 
   if (widgetAction === 'WIDGET_CLICK' && clickAction === 'TOGGLE_HABIT' && clickActionData?.habitId) {
     await toggleHabitCompletion(clickActionData.habitId);
-    // fall through below to re-render the widget that was tapped with fresh data,
-    // then also nudge the other two widgets so progress/streak stay in sync.
   }
 
   let habits: any[] = [];
@@ -122,10 +159,6 @@ registerWidgetTaskHandler(async ({ widgetName, renderWidget, widgetAction, click
       AsyncStorage.getItem('@fg:habits'),
       AsyncStorage.getItem('@fg:logs'),
     ]);
-    // On a fresh widget placement (cold start / headless), the native
-    // storage bridge can occasionally answer before it's fully warmed up,
-    // returning null even though data exists on disk. Retry once shortly
-    // after before falling back to the empty state.
     if (!rawHabits) {
       await new Promise((resolve) => setTimeout(resolve, 300));
       [rawHabits, rawLogs] = await Promise.all([
@@ -144,7 +177,7 @@ registerWidgetTaskHandler(async ({ widgetName, renderWidget, widgetAction, click
   const scheduled = habits.filter((h: any) => isScheduledToday(h, today));
   const total = scheduled.length;
 
-  const habitList = scheduled.map((h: any) => ({
+  let habitList = scheduled.map((h: any) => ({
     id: h.id,
     name: h.name,
     completed: logs.some((l: any) =>
@@ -154,13 +187,30 @@ registerWidgetTaskHandler(async ({ widgetName, renderWidget, widgetAction, click
     ),
   }));
 
+  // Progress ring tap-to-complete: complete the next incomplete habit.
+  if (widgetAction === 'WIDGET_CLICK' && clickAction === 'COMPLETE_NEXT') {
+    const next = habitList.find((h: any) => !h.completed);
+    if (next) {
+      await toggleHabitCompletion(next.id);
+      const rawLogs2 = await AsyncStorage.getItem('@fg:logs');
+      logs = rawLogs2 ? JSON.parse(rawLogs2) : [];
+      habitList = scheduled.map((h: any) => ({
+        id: h.id,
+        name: h.name,
+        completed: logs.some((l: any) =>
+          l.habitId === h.id &&
+          l.date === today &&
+          (l.status === 'completed' || l.status === 'frozen')
+        ),
+      }));
+    }
+  }
+
   const completed = habitList.filter((h: any) => h.completed).length;
   const remaining = total - completed;
   const streak = getBestStreakToday(habits, logs, today);
-
-  let widgetType: 'progress' | 'tasks' | 'combined' = 'combined';
-  if (widgetName === 'ForgeHabitsProgress') widgetType = 'progress';
-  else if (widgetName === 'ForgeHabitsTasks') widgetType = 'tasks';
+  const widgetType = widgetTypeFor(widgetName);
+  const history = widgetType === 'heatmap' ? buildHeatmapHistory(habits, logs, today, 10) : undefined;
 
   await renderWidget(
     <ForgeHabitsWidget
@@ -170,16 +220,20 @@ registerWidgetTaskHandler(async ({ widgetName, renderWidget, widgetAction, click
       streak={streak}
       habits={habitList}
       widgetType={widgetType}
+      history={history}
     />
   );
 
-  if (widgetAction === 'WIDGET_CLICK' && clickAction === 'TOGGLE_HABIT') {
-    // Keep the other two widgets in sync after a tap.
+  const didModify =
+    (widgetAction === 'WIDGET_CLICK' && clickAction === 'TOGGLE_HABIT') ||
+    (widgetAction === 'WIDGET_CLICK' && clickAction === 'COMPLETE_NEXT');
+
+  if (didModify) {
+    // Keep the other widgets in sync after a tap.
     for (const otherName of ALL_WIDGET_NAMES) {
       if (otherName === widgetName) continue;
-      let otherType: 'progress' | 'tasks' | 'combined' = 'combined';
-      if (otherName === 'ForgeHabitsProgress') otherType = 'progress';
-      else if (otherName === 'ForgeHabitsTasks') otherType = 'tasks';
+      const otherType = widgetTypeFor(otherName);
+      const otherHistory = otherType === 'heatmap' ? buildHeatmapHistory(habits, logs, today, 10) : undefined;
       await requestWidgetUpdate({
         widgetName: otherName,
         renderWidget: () => (
@@ -190,6 +244,7 @@ registerWidgetTaskHandler(async ({ widgetName, renderWidget, widgetAction, click
             streak={streak}
             habits={habitList}
             widgetType={otherType}
+            history={otherHistory}
           />
         ),
       });

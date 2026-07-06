@@ -54,7 +54,8 @@
               "label": "ForgeHabits Progress",
               "minWidth": "110dp",
               "minHeight": "110dp",
-              "description": "Circular progress ring",
+              "resizeMode": "horizontal|vertical",
+              "description": "Circular progress ring \u2014 tap to complete next habit",
               "previewImage": "./assets/images/icon.png",
               "updatePeriodMillis": 1800000
             },
@@ -63,7 +64,8 @@
               "label": "ForgeHabits Tasks",
               "minWidth": "180dp",
               "minHeight": "180dp",
-              "description": "Today's task list",
+              "resizeMode": "horizontal|vertical",
+              "description": "Today's task list \u2014 tap to complete",
               "previewImage": "./assets/images/icon.png",
               "updatePeriodMillis": 1800000
             },
@@ -72,7 +74,18 @@
               "label": "ForgeHabits",
               "minWidth": "250dp",
               "minHeight": "180dp",
+              "resizeMode": "horizontal|vertical",
               "description": "Progress + tasks",
+              "previewImage": "./assets/images/icon.png",
+              "updatePeriodMillis": 1800000
+            },
+            {
+              "name": "ForgeHabitsHeatmap",
+              "label": "ForgeHabits Heatmap",
+              "minWidth": "250dp",
+              "minHeight": "110dp",
+              "resizeMode": "horizontal|vertical",
+              "description": "GitHub-style completion history",
               "previewImage": "./assets/images/icon.png",
               "updatePeriodMillis": 1800000
             }

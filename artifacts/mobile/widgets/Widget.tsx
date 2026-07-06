@@ -7,16 +7,22 @@ type HabitItem = {
   completed: boolean;
 };
 
+type HistoryDay = {
+  date: string;
+  pct: number;
+  hasData: boolean;
+};
+
 type Props = {
   completed?: number;
   total?: number;
   remaining?: number;
   streak?: number;
   habits?: HabitItem[];
-  widgetType?: 'progress' | 'tasks' | 'combined';
+  widgetType?: 'progress' | 'tasks' | 'combined' | 'heatmap';
+  history?: HistoryDay[];
 };
 
-// Simple fallback widget
 function EmptyWidget() {
   return (
     <FlexWidget
@@ -42,9 +48,64 @@ function EmptyWidget() {
   );
 }
 
-// Main widget component
+function heatmapColor(day: HistoryDay): string {
+  if (!day.hasData) return '#1a1a2e';
+  if (day.pct <= 0) return '#161b22';
+  if (day.pct < 0.25) return '#0e4429';
+  if (day.pct < 0.5) return '#006d32';
+  if (day.pct < 0.75) return '#26a641';
+  return '#39d353';
+}
+
+function HeatmapWidget({ history = [], streak = 0 }: { history?: HistoryDay[]; streak?: number }) {
+  const weeks: HistoryDay[][] = [];
+  for (let i = 0; i < history.length; i += 7) {
+    weeks.push(history.slice(i, i + 7));
+  }
+
+  return (
+    <FlexWidget
+      style={{
+        width: 'match_parent',
+        height: 'match_parent',
+        backgroundColor: '#1a1a2e',
+        borderRadius: 24,
+        padding: 12,
+        flexDirection: 'column',
+      }}
+    >
+      <TextWidget
+        text={`🔥 ${streak} day streak`}
+        style={{ fontSize: 12, fontWeight: 'bold', color: '#ffffff', marginBottom: 6 }}
+      />
+      <FlexWidget style={{ flexDirection: 'row' }}>
+        {weeks.map((week, wi) => (
+          <FlexWidget key={`w${wi}`} style={{ flexDirection: 'column', marginRight: 3 }}>
+            {week.map((day) => (
+              <FlexWidget
+                key={day.date}
+                style={{
+                  width: 10,
+                  height: 10,
+                  borderRadius: 2,
+                  backgroundColor: heatmapColor(day),
+                  marginBottom: 3,
+                }}
+              />
+            ))}
+          </FlexWidget>
+        ))}
+      </FlexWidget>
+    </FlexWidget>
+  );
+}
+
 export function ForgeHabitsWidget(props: Props) {
-  const { completed = 0, total = 0, habits = [], streak = 0, widgetType = 'combined' } = props;
+  const { completed = 0, total = 0, habits = [], streak = 0, widgetType = 'combined', history = [] } = props;
+
+  if (widgetType === 'heatmap') {
+    return <HeatmapWidget history={history} streak={streak} />;
+  }
 
   if (total === 0) {
     return <EmptyWidget />;
@@ -54,15 +115,15 @@ export function ForgeHabitsWidget(props: Props) {
   const color = percentage >= 80 ? '#4CAF50' : percentage >= 50 ? '#FF9800' : '#f44336';
   const displayHabits = habits.slice(0, widgetType === 'tasks' ? 4 : 3);
 
-  // Progress widget
   if (widgetType === 'progress') {
     return (
       <FlexWidget
+        clickAction="COMPLETE_NEXT"
         style={{
           width: 'match_parent',
           height: 'match_parent',
           backgroundColor: '#1a1a2e',
-        borderRadius: 24,
+          borderRadius: 24,
           justifyContent: 'center',
           alignItems: 'center',
           padding: 10,
@@ -97,7 +158,6 @@ export function ForgeHabitsWidget(props: Props) {
     );
   }
 
-  // Tasks widget
   if (widgetType === 'tasks') {
     return (
       <FlexWidget
@@ -105,7 +165,7 @@ export function ForgeHabitsWidget(props: Props) {
           width: 'match_parent',
           height: 'match_parent',
           backgroundColor: '#1a1a2e',
-        borderRadius: 24,
+          borderRadius: 24,
           padding: 12,
           flexDirection: 'column',
         }}
@@ -141,7 +201,6 @@ export function ForgeHabitsWidget(props: Props) {
     );
   }
 
-  // Combined widget (default)
   return (
     <FlexWidget
       style={{
@@ -153,7 +212,10 @@ export function ForgeHabitsWidget(props: Props) {
         flexDirection: 'column',
       }}
     >
-      <FlexWidget style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+      <FlexWidget
+        clickAction="COMPLETE_NEXT"
+        style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}
+      >
         <FlexWidget
           style={{
             width: 44,
