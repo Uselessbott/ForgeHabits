@@ -1,6 +1,6 @@
 import 'expo-router/entry';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { registerWidgetTaskHandler, requestWidgetUpdate } from 'react-native-android-widget';
+import { registerWidgetTaskHandler, requestWidgetUpdate, FlexWidget, TextWidget } from 'react-native-android-widget';
 import { ForgeHabitsWidget } from './widgets/Widget';
 
 // ── Minimal helpers ──────────────────────────────────────────────────────
@@ -109,8 +109,6 @@ async function toggleHabitCompletion(habitId: string): Promise<void> {
   await AsyncStorage.setItem('@fg:logs', JSON.stringify(updatedLogs));
 }
 
-// Builds a day-by-day completion-percentage history for the heatmap widget.
-// weeks * 7 days, most recent day last, oldest first.
 function buildHeatmapHistory(habits: any[], logs: any[], today: string, weeks: number) {
   const totalDays = weeks * 7;
   const history: { date: string; pct: number; hasData: boolean }[] = [];
@@ -148,13 +146,13 @@ function widgetTypeFor(widgetName: string): 'progress' | 'tasks' | 'combined' | 
 registerWidgetTaskHandler(async ({ widgetName, renderWidget, widgetAction, clickAction, clickActionData }: any) => {
   if (!widgetName.startsWith('ForgeHabits')) return;
 
-  if (widgetAction === 'WIDGET_CLICK' && clickAction === 'TOGGLE_HABIT' && clickActionData?.habitId) {
-    await toggleHabitCompletion(clickActionData.habitId);
-  }
-
-  let habits: any[] = [];
-  let logs: any[] = [];
   try {
+    if (widgetAction === 'WIDGET_CLICK' && clickAction === 'TOGGLE_HABIT' && clickActionData?.habitId) {
+      await toggleHabitCompletion(clickActionData.habitId);
+    }
+
+    let habits: any[] = [];
+    let logs: any[] = [];
     let [rawHabits, rawLogs] = await Promise.all([
       AsyncStorage.getItem('@fg:habits'),
       AsyncStorage.getItem('@fg:logs'),
@@ -168,86 +166,108 @@ registerWidgetTaskHandler(async ({ widgetName, renderWidget, widgetAction, click
     }
     habits = rawHabits ? JSON.parse(rawHabits) : [];
     logs = rawLogs ? JSON.parse(rawLogs) : [];
-  } catch {
-    await renderWidget(<ForgeHabitsWidget />);
-    return;
-  }
 
-  const today = getTodayStr();
-  const scheduled = habits.filter((h: any) => isScheduledToday(h, today));
-  const total = scheduled.length;
+    const today = getTodayStr();
+    const scheduled = habits.filter((h: any) => isScheduledToday(h, today));
+    const total = scheduled.length;
 
-  let habitList = scheduled.map((h: any) => ({
-    id: h.id,
-    name: h.name,
-    completed: logs.some((l: any) =>
-      l.habitId === h.id &&
-      l.date === today &&
-      (l.status === 'completed' || l.status === 'frozen')
-    ),
-  }));
+    let habitList = scheduled.map((h: any) => ({
+      id: h.id,
+      name: h.name,
+      completed: logs.some((l: any) =>
+        l.habitId === h.id &&
+        l.date === today &&
+        (l.status === 'completed' || l.status === 'frozen')
+      ),
+    }));
 
-  // Progress ring tap-to-complete: complete the next incomplete habit.
-  if (widgetAction === 'WIDGET_CLICK' && clickAction === 'COMPLETE_NEXT') {
-    const next = habitList.find((h: any) => !h.completed);
-    if (next) {
-      await toggleHabitCompletion(next.id);
-      const rawLogs2 = await AsyncStorage.getItem('@fg:logs');
-      logs = rawLogs2 ? JSON.parse(rawLogs2) : [];
-      habitList = scheduled.map((h: any) => ({
-        id: h.id,
-        name: h.name,
-        completed: logs.some((l: any) =>
-          l.habitId === h.id &&
-          l.date === today &&
-          (l.status === 'completed' || l.status === 'frozen')
-        ),
-      }));
+    if (widgetAction === 'WIDGET_CLICK' && clickAction === 'COMPLETE_NEXT') {
+      const next = habitList.find((h: any) => !h.completed);
+      if (next) {
+        await toggleHabitCompletion(next.id);
+        const rawLogs2 = await AsyncStorage.getItem('@fg:logs');
+        logs = rawLogs2 ? JSON.parse(rawLogs2) : [];
+        habitList = scheduled.map((h: any) => ({
+          id: h.id,
+          name: h.name,
+          completed: logs.some((l: any) =>
+            l.habitId === h.id &&
+            l.date === today &&
+            (l.status === 'completed' || l.status === 'frozen')
+          ),
+        }));
+      }
     }
-  }
 
-  const completed = habitList.filter((h: any) => h.completed).length;
-  const remaining = total - completed;
-  const streak = getBestStreakToday(habits, logs, today);
-  const widgetType = widgetTypeFor(widgetName);
-  const history = widgetType === 'heatmap' ? buildHeatmapHistory(habits, logs, today, 10) : undefined;
+    const completed = habitList.filter((h: any) => h.completed).length;
+    const remaining = total - completed;
+    const streak = getBestStreakToday(habits, logs, today);
+    const widgetType = widgetTypeFor(widgetName);
+    const history = widgetType === 'heatmap' ? buildHeatmapHistory(habits, logs, today, 10) : undefined;
 
-  await renderWidget(
-    <ForgeHabitsWidget
-      completed={completed}
-      total={total}
-      remaining={remaining}
-      streak={streak}
-      habits={habitList}
-      widgetType={widgetType}
-      history={history}
-    />
-  );
+    await renderWidget(
+      <ForgeHabitsWidget
+        completed={completed}
+        total={total}
+        remaining={remaining}
+        streak={streak}
+        habits={habitList}
+        widgetType={widgetType}
+        history={history}
+      />
+    );
 
-  const didModify =
-    (widgetAction === 'WIDGET_CLICK' && clickAction === 'TOGGLE_HABIT') ||
-    (widgetAction === 'WIDGET_CLICK' && clickAction === 'COMPLETE_NEXT');
+    const didModify =
+      (widgetAction === 'WIDGET_CLICK' && clickAction === 'TOGGLE_HABIT') ||
+      (widgetAction === 'WIDGET_CLICK' && clickAction === 'COMPLETE_NEXT');
 
-  if (didModify) {
-    // Keep the other widgets in sync after a tap.
-    for (const otherName of ALL_WIDGET_NAMES) {
-      if (otherName === widgetName) continue;
-      const otherType = widgetTypeFor(otherName);
-      const otherHistory = otherType === 'heatmap' ? buildHeatmapHistory(habits, logs, today, 10) : undefined;
-      await requestWidgetUpdate({
-        widgetName: otherName,
-        renderWidget: () => (
-          <ForgeHabitsWidget
-            completed={completed}
-            total={total}
-            remaining={remaining}
-            streak={streak}
-            habits={habitList}
-            widgetType={otherType}
-            history={otherHistory}
-          />
-        ),
-      });
+    if (didModify) {
+      for (const otherName of ALL_WIDGET_NAMES) {
+        if (otherName === widgetName) continue;
+        const otherType = widgetTypeFor(otherName);
+        const otherHistory = otherType === 'heatmap' ? buildHeatmapHistory(habits, logs, today, 10) : undefined;
+        await requestWidgetUpdate({
+          widgetName: otherName,
+          renderWidget: () => (
+            <ForgeHabitsWidget
+              completed={completed}
+              total={total}
+              remaining={remaining}
+              streak={streak}
+              habits={habitList}
+              widgetType={otherType}
+              history={otherHistory}
+            />
+          ),
+        });
+      }
     }
+  } catch (e: any) {
+    const message = e?.message ? String(e.message) : String(e);
+    const stack = e?.stack ? String(e.stack).slice(0, 300) : '';
+    await renderWidget(
+      <FlexWidget
+        style={{
+          width: 'match_parent',
+          height: 'match_parent',
+          backgroundColor: '#2e1a1a',
+          padding: 8,
+          flexDirection: 'column',
+        }}
+      >
+        <TextWidget
+          text="⚠️ Widget error"
+          style={{ fontSize: 12, fontWeight: 'bold', color: '#ff6666' }}
+        />
+        <TextWidget
+          text={message.slice(0, 150)}
+          style={{ fontSize: 9, color: '#ffaaaa', marginTop: 4 }}
+        />
+        <TextWidget
+          text={stack}
+          style={{ fontSize: 7, color: '#ff8888', marginTop: 4 }}
+        />
+      </FlexWidget>
+    );
   }
 });
