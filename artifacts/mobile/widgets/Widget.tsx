@@ -48,6 +48,7 @@ function EmptyWidget() {
   );
 }
 
+// Plain data helper (no JSX) — safe, unlike component extraction.
 function heatmapColor(day: HistoryDay): string {
   if (!day.hasData) return '#1a1a2e';
   if (day.pct <= 0) return '#161b22';
@@ -57,54 +58,52 @@ function heatmapColor(day: HistoryDay): string {
   return '#39d353';
 }
 
-function HeatmapWidget({ history = [], streak = 0 }: { history?: HistoryDay[]; streak?: number }) {
-  const weeks: HistoryDay[][] = [];
-  for (let i = 0; i < history.length; i += 7) {
-    weeks.push(history.slice(i, i + 7));
-  }
-
-  return (
-    <FlexWidget
-      style={{
-        width: 'match_parent',
-        height: 'match_parent',
-        backgroundColor: '#1a1a2e',
-        borderRadius: 24,
-        padding: 12,
-        flexDirection: 'column',
-      }}
-    >
-      <TextWidget
-        text={`🔥 ${streak} day streak`}
-        style={{ fontSize: 12, fontWeight: 'bold', color: '#ffffff', marginBottom: 6 }}
-      />
-      <FlexWidget style={{ flexDirection: 'row' }}>
-        {weeks.map((week, wi) => (
-          <FlexWidget key={`w${wi}`} style={{ flexDirection: 'column', marginRight: 3 }}>
-            {week.map((day) => (
-              <FlexWidget
-                key={day.date}
-                style={{
-                  width: 10,
-                  height: 10,
-                  borderRadius: 2,
-                  backgroundColor: heatmapColor(day),
-                  marginBottom: 3,
-                }}
-              />
-            ))}
-          </FlexWidget>
-        ))}
-      </FlexWidget>
-    </FlexWidget>
-  );
-}
-
 export function ForgeHabitsWidget(props: Props) {
   const { completed = 0, total = 0, habits = [], streak = 0, widgetType = 'combined', history = [] } = props;
 
+  // Heatmap — inlined directly, no nested component, to avoid the widget
+  // renderer's issue with prop-passing through extracted sub-components.
   if (widgetType === 'heatmap') {
-    return <HeatmapWidget history={history} streak={streak} />;
+    const weeks: HistoryDay[][] = [];
+    for (let i = 0; i < history.length; i += 7) {
+      weeks.push(history.slice(i, i + 7));
+    }
+
+    return (
+      <FlexWidget
+        style={{
+          width: 'match_parent',
+          height: 'match_parent',
+          backgroundColor: '#1a1a2e',
+          borderRadius: 24,
+          padding: 12,
+          flexDirection: 'column',
+        }}
+      >
+        <TextWidget
+          text={`🔥 ${streak} day streak`}
+          style={{ fontSize: 12, fontWeight: 'bold', color: '#ffffff', marginBottom: 6 }}
+        />
+        <FlexWidget style={{ flexDirection: 'row' }}>
+          {weeks.map((week, wi) => (
+            <FlexWidget key={`w${wi}`} style={{ flexDirection: 'column', marginRight: 3 }}>
+              {week.map((day) => (
+                <FlexWidget
+                  key={day.date}
+                  style={{
+                    width: 10,
+                    height: 10,
+                    borderRadius: 2,
+                    backgroundColor: heatmapColor(day),
+                    marginBottom: 3,
+                  }}
+                />
+              ))}
+            </FlexWidget>
+          ))}
+        </FlexWidget>
+      </FlexWidget>
+    );
   }
 
   if (total === 0) {
