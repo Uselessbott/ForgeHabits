@@ -7,7 +7,7 @@
     "icon": "./assets/images/icon.png",
     "scheme": "mobile",
     "userInterfaceStyle": "dark",
-    "newArchEnabled": false,
+    "newArchEnabled": true,
     "splash": {
       "image": "./assets/images/icon.png",
       "resizeMode": "contain",
@@ -51,22 +51,22 @@
           "widgets": [
             {
               "name": "ForgeHabitsProgress",
-              "label": "ForgeHabits Progress",
+              "label": "Progress",
               "minWidth": "110dp",
               "minHeight": "110dp",
               "resizeMode": "horizontal|vertical",
               "description": "Circular progress ring \u2014 tap to complete next habit",
-              "previewImage": "./assets/images/icon.png",
+              "previewImage": "./assets/images/widget_preview_progress.png",
               "updatePeriodMillis": 1800000
             },
             {
               "name": "ForgeHabitsTasks",
-              "label": "ForgeHabits Tasks",
+              "label": "Tasks",
               "minWidth": "180dp",
               "minHeight": "180dp",
               "resizeMode": "horizontal|vertical",
               "description": "Today's task list \u2014 tap to complete",
-              "previewImage": "./assets/images/icon.png",
+              "previewImage": "./assets/images/widget_preview_tasks.png",
               "updatePeriodMillis": 1800000
             },
             {
@@ -76,17 +76,17 @@
               "minHeight": "180dp",
               "resizeMode": "horizontal|vertical",
               "description": "Progress + tasks",
-              "previewImage": "./assets/images/icon.png",
+              "previewImage": "./assets/images/widget_preview_combined.png",
               "updatePeriodMillis": 1800000
             },
             {
               "name": "ForgeHabitsHeatmap",
-              "label": "ForgeHabits Heatmap",
+              "label": "Heatmap",
               "minWidth": "250dp",
               "minHeight": "110dp",
               "resizeMode": "horizontal|vertical",
               "description": "GitHub-style completion history",
-              "previewImage": "./assets/images/icon.png",
+              "previewImage": "./assets/images/widget_preview_heatmap.png",
               "updatePeriodMillis": 1800000
             }
           ]

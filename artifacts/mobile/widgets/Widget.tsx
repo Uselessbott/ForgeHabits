@@ -21,11 +21,13 @@ type Props = {
   habits?: HabitItem[];
   widgetType?: 'progress' | 'tasks' | 'combined' | 'heatmap';
   history?: HistoryDay[];
+  maxItems?: number;
 };
 
 function EmptyWidget() {
   return (
     <FlexWidget
+      clickAction="OPEN_APP"
       style={{
         width: 'match_parent',
         height: 'match_parent',
@@ -48,7 +50,6 @@ function EmptyWidget() {
   );
 }
 
-// Plain data helper (no JSX) — safe, unlike component extraction.
 function heatmapColor(day: HistoryDay): string {
   if (!day.hasData) return '#1a1a2e';
   if (day.pct <= 0) return '#161b22';
@@ -59,10 +60,10 @@ function heatmapColor(day: HistoryDay): string {
 }
 
 export function ForgeHabitsWidget(props: Props) {
-  const { completed = 0, total = 0, habits = [], streak = 0, widgetType = 'combined', history = [] } = props;
+  const { completed = 0, total = 0, habits = [], streak = 0, widgetType = 'combined', history = [], maxItems } = props;
 
-  // Heatmap — inlined directly, no nested component, to avoid the widget
-  // renderer's issue with prop-passing through extracted sub-components.
+  // Heatmap — intentionally has NO clickAction anywhere, so tapping it does
+  // nothing (does not open the app), per design.
   if (widgetType === 'heatmap') {
     const weeks: HistoryDay[][] = [];
     for (let i = 0; i < history.length; i += 7) {
@@ -112,12 +113,16 @@ export function ForgeHabitsWidget(props: Props) {
 
   const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
   const color = percentage >= 80 ? '#4CAF50' : percentage >= 50 ? '#FF9800' : '#f44336';
-  const displayHabits = habits.slice(0, widgetType === 'tasks' ? 4 : 3);
+  const defaultCount = widgetType === 'tasks' ? 4 : 3;
+  const itemCount = maxItems && maxItems > 0 ? maxItems : defaultCount;
+  const displayHabits = habits.slice(0, itemCount);
 
+  // Progress widget: outer area opens the app; the ring itself completes
+  // the next habit.
   if (widgetType === 'progress') {
     return (
       <FlexWidget
-        clickAction="COMPLETE_NEXT"
+        clickAction="OPEN_APP"
         style={{
           width: 'match_parent',
           height: 'match_parent',
@@ -129,6 +134,7 @@ export function ForgeHabitsWidget(props: Props) {
         }}
       >
         <FlexWidget
+          clickAction="COMPLETE_NEXT"
           style={{
             width: 64,
             height: 64,
@@ -160,6 +166,7 @@ export function ForgeHabitsWidget(props: Props) {
   if (widgetType === 'tasks') {
     return (
       <FlexWidget
+        clickAction="OPEN_APP"
         style={{
           width: 'match_parent',
           height: 'match_parent',
@@ -190,9 +197,9 @@ export function ForgeHabitsWidget(props: Props) {
             />
           </FlexWidget>
         ))}
-        {habits.length > 4 && (
+        {habits.length > itemCount && (
           <TextWidget
-            text={`+${habits.length - 4} more`}
+            text={`+${habits.length - itemCount} more`}
             style={{ fontSize: 10, color: '#666688', marginTop: 2 }}
           />
         )}
@@ -202,6 +209,7 @@ export function ForgeHabitsWidget(props: Props) {
 
   return (
     <FlexWidget
+      clickAction="OPEN_APP"
       style={{
         width: 'match_parent',
         height: 'match_parent',
@@ -211,11 +219,9 @@ export function ForgeHabitsWidget(props: Props) {
         flexDirection: 'column',
       }}
     >
-      <FlexWidget
-        clickAction="COMPLETE_NEXT"
-        style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}
-      >
+      <FlexWidget style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
         <FlexWidget
+          clickAction="COMPLETE_NEXT"
           style={{
             width: 44,
             height: 44,
@@ -261,9 +267,9 @@ export function ForgeHabitsWidget(props: Props) {
           />
         </FlexWidget>
       ))}
-      {habits.length > 3 && (
+      {habits.length > itemCount && (
         <TextWidget
-          text={`+${habits.length - 3} more`}
+          text={`+${habits.length - itemCount} more`}
           style={{ fontSize: 10, color: '#666688', marginTop: 2 }}
         />
       )}
