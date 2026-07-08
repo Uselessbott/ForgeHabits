@@ -21,7 +21,18 @@ type Props = {
   habits?: HabitItem[];
   widgetType?: 'progress' | 'tasks' | 'combined' | 'heatmap';
   history?: HistoryDay[];
+  width?: number;
+  height?: number;
 };
+
+// Buckets based on props.widgetInfo.width/height (dp) from the task handler.
+// Calls that don't have live dimensions (e.g. HabitsContext refreshWidget)
+// fall back to 'large' via the defaults below.
+function sizeBucket(width: number, height: number): 'small' | 'medium' | 'large' {
+  if (width < 140 && height < 140) return 'small';
+  if (width < 200) return 'medium';
+  return 'large';
+}
 
 const BG = '#080808';
 const ACCENT = '#FF6B35';
@@ -77,7 +88,8 @@ function Checkbox({ done, size = 16 }: { done: boolean; size?: number }) {
 }
 
 export function ForgeHabitsWidget(props: Props) {
-  const { completed = 0, total = 0, habits = [], streak = 0, widgetType = 'combined', history = [] } = props;
+  const { completed = 0, total = 0, habits = [], streak = 0, widgetType = 'combined', history = [], width = 250, height = 180 } = props;
+  const bucket = sizeBucket(width, height);
 
   if (widgetType === 'heatmap') {
     const weeks: HistoryDay[][] = [];
@@ -130,6 +142,8 @@ export function ForgeHabitsWidget(props: Props) {
   const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
 
   if (widgetType === 'progress') {
+    const ringSize = bucket === 'small' ? 48 : bucket === 'medium' ? 56 : 64;
+    const pctFontSize = bucket === 'small' ? 13 : bucket === 'medium' ? 14 : 16;
     return (
       <FlexWidget
         clickAction="OPEN_APP"
@@ -145,20 +159,22 @@ export function ForgeHabitsWidget(props: Props) {
       >
         <FlexWidget
           style={{
-            width: 64,
-            height: 64,
-            borderRadius: 32,
+            width: ringSize,
+            height: ringSize,
+            borderRadius: ringSize / 2,
             backgroundColor: BG,
             justifyContent: 'center',
             alignItems: 'center',
-            borderWidth: 6,
+            borderWidth: Math.max(4, ringSize * 0.09),
             borderColor: ACCENT,
           }}
         >
-          <TextWidget text={`${percentage}%`} style={{ fontSize: 16, fontWeight: 'bold', color: TEXT }} />
+          <TextWidget text={`${percentage}%`} style={{ fontSize: pctFontSize, fontWeight: 'bold', color: TEXT }} />
         </FlexWidget>
         <TextWidget text={`${completed}/${total} habits`} style={{ fontSize: 11, color: SUBTEXT, marginTop: 6 }} />
-        <TextWidget text={`${streak} day streak`} style={{ fontSize: 10, color: ACCENT, marginTop: 2 }} />
+        {bucket !== 'small' && (
+          <TextWidget text={`${streak} day streak`} style={{ fontSize: 10, color: ACCENT, marginTop: 2 }} />
+        )}
       </FlexWidget>
     );
   }
@@ -177,7 +193,7 @@ export function ForgeHabitsWidget(props: Props) {
       >
         <TextWidget
           text={`Today (${completed}/${total})`}
-          style={{ fontSize: 13, fontWeight: 'bold', color: TEXT, marginBottom: 6 }}
+          style={{ fontSize: bucket === 'small' ? 11 : 13, fontWeight: 'bold', color: TEXT, marginBottom: 6 }}
         />
         <ListWidget style={{ flex: 1, width: 'match_parent' }}>
           {habits.map((habit) => (
@@ -186,8 +202,8 @@ export function ForgeHabitsWidget(props: Props) {
               clickAction="OPEN_APP"
               style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 4, width: 'match_parent' }}
             >
-              <Checkbox done={habit.completed} />
-              <TextWidget text={habit.name} style={{ fontSize: 12, color: habit.completed ? SUBTEXT : TEXT }} />
+              <Checkbox done={habit.completed} size={bucket === 'small' ? 13 : 16} />
+              <TextWidget text={habit.name} style={{ fontSize: bucket === 'small' ? 11 : 12, color: habit.completed ? SUBTEXT : TEXT }} />
             </FlexWidget>
           ))}
         </ListWidget>

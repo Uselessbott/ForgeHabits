@@ -244,10 +244,29 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
       if (current > streak) streak = current;
     });
 
+    const heatmapWeeks = 10;
+    const heatmapDays = heatmapWeeks * 7;
+    const historyStart = addDays(parseDate(today), -(heatmapDays - 1));
+    const history: { date: string; pct: number; hasData: boolean }[] = [];
+    for (let i = 0; i < heatmapDays; i++) {
+      const ds = formatDate(addDays(historyStart, i));
+      const scheduledForDay = h.filter(hb => !hb.archived && isHabitScheduledForDate(hb, ds));
+      const totalForDay = scheduledForDay.length;
+      const completedForDay = scheduledForDay.filter(hb =>
+        l.some(log => log.habitId === hb.id && log.date === ds && (log.status === 'completed' || log.status === 'frozen'))
+      ).length;
+      history.push({
+        date: ds,
+        pct: totalForDay > 0 ? completedForDay / totalForDay : 0,
+        hasData: totalForDay > 0,
+      });
+    }
+
     const widgetConfigs = [
       { name: 'ForgeHabitsProgress', type: 'progress' },
       { name: 'ForgeHabitsTasks', type: 'tasks' },
       { name: 'ForgeHabitsCombined', type: 'combined' },
+      { name: 'ForgeHabitsHeatmap', type: 'heatmap' },
     ];
 
     widgetConfigs.forEach(({ name, type }) => {
@@ -261,6 +280,7 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
             streak={streak}
             habits={habitList}
             widgetType={type}
+            history={type === 'heatmap' ? history : undefined}
           />
         ),
       });

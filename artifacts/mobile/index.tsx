@@ -139,7 +139,7 @@ function widgetTypeFor(widgetName: string): 'progress' | 'tasks' | 'combined' | 
   return 'combined';
 }
 
-registerWidgetTaskHandler(async ({ widgetName, renderWidget, widgetAction, clickAction, clickActionData }: any) => {
+registerWidgetTaskHandler(async ({ widgetName, renderWidget, widgetAction, clickAction, clickActionData, widgetInfo }: any) => {
   if (!widgetName.startsWith('ForgeHabits')) return;
 
   try {
@@ -229,6 +229,8 @@ registerWidgetTaskHandler(async ({ widgetName, renderWidget, widgetAction, click
         habits={habitList}
         widgetType={widgetType}
         history={history}
+        width={widgetInfo?.width}
+        height={widgetInfo?.height}
       />
     );
 
