@@ -3,5 +3,8 @@
   <string name="expo_splash_screen_resize_mode" translatable="false">contain</string>
   <string name="expo_splash_screen_status_bar_translucent" translatable="false">false</string>
   <string name="expo_system_ui_user_interface_style" translatable="false">dark</string>
-  <string name="widget_forgehabitswidget_description" translatable="false">Track your habits</string>
+  <string name="widget_forgehabitsprogress_description" translatable="false">Circular progress ring — tap to complete next habit</string>
+  <string name="widget_forgehabitstasks_description" translatable="false">Today\'s task list — tap to complete</string>
+  <string name="widget_forgehabitscombined_description" translatable="false">Progress + tasks</string>
+  <string name="widget_forgehabitsheatmap_description" translatable="false">GitHub-style completion history</string>
 </resources>
