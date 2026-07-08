@@ -97,6 +97,17 @@ export function ForgeHabitsWidget(props: Props) {
       weeks.push(history.slice(i, i + 7));
     }
 
+    const padding = 12;
+    const headerHeight = 26;
+    const gap = 3;
+    const numCols = Math.max(weeks.length, 1);
+    const numRows = 7;
+    const availableWidth = Math.max(width - padding * 2, 40);
+    const availableHeight = Math.max(height - padding * 2 - headerHeight, 30);
+    const cellFromWidth = (availableWidth - gap * (numCols - 1)) / numCols;
+    const cellFromHeight = (availableHeight - gap * (numRows - 1)) / numRows;
+    const cellSize = Math.max(4, Math.min(cellFromWidth, cellFromHeight));
+
     return (
       <FlexWidget
         clickAction="OPEN_APP"
@@ -105,7 +116,7 @@ export function ForgeHabitsWidget(props: Props) {
           height: 'match_parent',
           backgroundColor: BG,
           borderRadius: 24,
-          padding: 12,
+          padding,
           flexDirection: 'column',
         }}
       >
@@ -113,18 +124,18 @@ export function ForgeHabitsWidget(props: Props) {
           text={`${streak} day streak`}
           style={{ fontSize: 12, fontWeight: 'bold', color: TEXT, marginBottom: 6 }}
         />
-        <FlexWidget style={{ flexDirection: 'row' }}>
+        <FlexWidget style={{ flexDirection: 'row', justifyContent: 'space-between', width: 'match_parent' }}>
           {weeks.map((week, wi) => (
-            <FlexWidget key={`w${wi}`} style={{ flexDirection: 'column', marginRight: 3 }}>
+            <FlexWidget key={`w${wi}`} style={{ flexDirection: 'column' }}>
               {week.map((day) => (
                 <FlexWidget
                   key={day.date}
                   style={{
-                    width: 10,
-                    height: 10,
-                    borderRadius: 2,
+                    width: cellSize,
+                    height: cellSize,
+                    borderRadius: Math.max(2, cellSize * 0.2),
                     backgroundColor: heatmapColor(day),
-                    marginBottom: 3,
+                    marginBottom: gap,
                   }}
                 />
               ))}
