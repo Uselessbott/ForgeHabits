@@ -1,5 +1,5 @@
 import React from 'react';
-import { FlexWidget, TextWidget } from 'react-native-android-widget';
+import { FlexWidget, TextWidget, ListWidget } from 'react-native-android-widget';
 
 type HabitItem = {
   id: string;
@@ -23,46 +23,62 @@ type Props = {
   history?: HistoryDay[];
 };
 
+const BG = '#080808';
+const ACCENT = '#FF6B35';
+const ACCENT_DIM = '#5A2D19';
+const TEXT = '#F0F0F0';
+const SUBTEXT = '#969696';
+
 function EmptyWidget() {
   return (
     <FlexWidget
+      clickAction="OPEN_APP"
       style={{
         width: 'match_parent',
         height: 'match_parent',
-        backgroundColor: '#1a1a2e',
+        backgroundColor: BG,
         borderRadius: 24,
         justifyContent: 'center',
         alignItems: 'center',
         padding: 16,
       }}
     >
-      <TextWidget
-        text="🔥 ForgeHabits"
-        style={{ fontSize: 16, color: '#ffffff' }}
-      />
+      <TextWidget text="ForgeHabits" style={{ fontSize: 16, color: TEXT }} />
       <TextWidget
         text="Add some habits!"
-        style={{ fontSize: 12, color: '#666688', marginTop: 6 }}
+        style={{ fontSize: 12, color: SUBTEXT, marginTop: 6 }}
       />
     </FlexWidget>
   );
 }
 
-// Plain data helper (no JSX) — safe, unlike component extraction.
 function heatmapColor(day: HistoryDay): string {
-  if (!day.hasData) return '#1a1a2e';
-  if (day.pct <= 0) return '#161b22';
-  if (day.pct < 0.25) return '#0e4429';
-  if (day.pct < 0.5) return '#006d32';
-  if (day.pct < 0.75) return '#26a641';
-  return '#39d353';
+  if (!day.hasData) return '#1c1c1c';
+  if (day.pct <= 0) return ACCENT_DIM;
+  if (day.pct < 0.34) return '#8A4526';
+  if (day.pct < 0.67) return '#C2552B';
+  return ACCENT;
+}
+
+function Checkbox({ done, size = 16 }: { done: boolean; size?: number }) {
+  return (
+    <FlexWidget
+      style={{
+        width: size,
+        height: size,
+        borderRadius: size * 0.25,
+        backgroundColor: done ? ACCENT : 'transparent',
+        borderColor: done ? ACCENT : SUBTEXT,
+        borderWidth: done ? 0 : 2,
+        marginRight: 8,
+      }}
+    />
+  );
 }
 
 export function ForgeHabitsWidget(props: Props) {
   const { completed = 0, total = 0, habits = [], streak = 0, widgetType = 'combined', history = [] } = props;
 
-  // Heatmap — inlined directly, no nested component, to avoid the widget
-  // renderer's issue with prop-passing through extracted sub-components.
   if (widgetType === 'heatmap') {
     const weeks: HistoryDay[][] = [];
     for (let i = 0; i < history.length; i += 7) {
@@ -71,18 +87,19 @@ export function ForgeHabitsWidget(props: Props) {
 
     return (
       <FlexWidget
+        clickAction="OPEN_APP"
         style={{
           width: 'match_parent',
           height: 'match_parent',
-          backgroundColor: '#1a1a2e',
+          backgroundColor: BG,
           borderRadius: 24,
           padding: 12,
           flexDirection: 'column',
         }}
       >
         <TextWidget
-          text={`🔥 ${streak} day streak`}
-          style={{ fontSize: 12, fontWeight: 'bold', color: '#ffffff', marginBottom: 6 }}
+          text={`${streak} day streak`}
+          style={{ fontSize: 12, fontWeight: 'bold', color: TEXT, marginBottom: 6 }}
         />
         <FlexWidget style={{ flexDirection: 'row' }}>
           {weeks.map((week, wi) => (
@@ -111,17 +128,15 @@ export function ForgeHabitsWidget(props: Props) {
   }
 
   const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
-  const color = percentage >= 80 ? '#4CAF50' : percentage >= 50 ? '#FF9800' : '#f44336';
-  const displayHabits = habits.slice(0, widgetType === 'tasks' ? 4 : 3);
 
   if (widgetType === 'progress') {
     return (
       <FlexWidget
-        clickAction="COMPLETE_NEXT"
+        clickAction="OPEN_APP"
         style={{
           width: 'match_parent',
           height: 'match_parent',
-          backgroundColor: '#1a1a2e',
+          backgroundColor: BG,
           borderRadius: 24,
           justifyContent: 'center',
           alignItems: 'center',
@@ -133,26 +148,17 @@ export function ForgeHabitsWidget(props: Props) {
             width: 64,
             height: 64,
             borderRadius: 32,
-            backgroundColor: '#16213e',
+            backgroundColor: BG,
             justifyContent: 'center',
             alignItems: 'center',
-            borderWidth: 5,
-            borderColor: color,
+            borderWidth: 6,
+            borderColor: ACCENT,
           }}
         >
-          <TextWidget
-            text={`${percentage}%`}
-            style={{ fontSize: 16, fontWeight: 'bold', color: '#ffffff' }}
-          />
+          <TextWidget text={`${percentage}%`} style={{ fontSize: 16, fontWeight: 'bold', color: TEXT }} />
         </FlexWidget>
-        <TextWidget
-          text={`${completed}/${total} habits`}
-          style={{ fontSize: 11, color: '#8888aa', marginTop: 6 }}
-        />
-        <TextWidget
-          text={`🔥 ${streak} day streak`}
-          style={{ fontSize: 10, color: '#FF9800', marginTop: 2 }}
-        />
+        <TextWidget text={`${completed}/${total} habits`} style={{ fontSize: 11, color: SUBTEXT, marginTop: 6 }} />
+        <TextWidget text={`${streak} day streak`} style={{ fontSize: 10, color: ACCENT, marginTop: 2 }} />
       </FlexWidget>
     );
   }
@@ -163,39 +169,28 @@ export function ForgeHabitsWidget(props: Props) {
         style={{
           width: 'match_parent',
           height: 'match_parent',
-          backgroundColor: '#1a1a2e',
+          backgroundColor: BG,
           borderRadius: 24,
           padding: 12,
           flexDirection: 'column',
         }}
       >
         <TextWidget
-          text={`📋 Today (${completed}/${total})`}
-          style={{ fontSize: 13, fontWeight: 'bold', color: '#ffffff', marginBottom: 6 }}
+          text={`Today (${completed}/${total})`}
+          style={{ fontSize: 13, fontWeight: 'bold', color: TEXT, marginBottom: 6 }}
         />
-        {displayHabits.map((habit) => (
-          <FlexWidget
-            key={habit.id}
-            clickAction="TOGGLE_HABIT"
-            clickActionData={{ habitId: habit.id }}
-            style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 3 }}
-          >
-            <TextWidget
-              text={habit.completed ? '✅' : '⬜'}
-              style={{ fontSize: 13, marginRight: 8 }}
-            />
-            <TextWidget
-              text={habit.name}
-              style={{ fontSize: 12, color: habit.completed ? '#4CAF50' : '#ffffff' }}
-            />
-          </FlexWidget>
-        ))}
-        {habits.length > 4 && (
-          <TextWidget
-            text={`+${habits.length - 4} more`}
-            style={{ fontSize: 10, color: '#666688', marginTop: 2 }}
-          />
-        )}
+        <ListWidget style={{ flex: 1, width: 'match_parent' }}>
+          {habits.map((habit) => (
+            <FlexWidget
+              key={habit.id}
+              clickAction="OPEN_APP"
+              style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 4, width: 'match_parent' }}
+            >
+              <Checkbox done={habit.completed} />
+              <TextWidget text={habit.name} style={{ fontSize: 12, color: habit.completed ? SUBTEXT : TEXT }} />
+            </FlexWidget>
+          ))}
+        </ListWidget>
       </FlexWidget>
     );
   }
@@ -205,68 +200,45 @@ export function ForgeHabitsWidget(props: Props) {
       style={{
         width: 'match_parent',
         height: 'match_parent',
-        backgroundColor: '#1a1a2e',
+        backgroundColor: BG,
         borderRadius: 24,
         padding: 12,
         flexDirection: 'column',
       }}
     >
-      <FlexWidget
-        clickAction="COMPLETE_NEXT"
-        style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}
-      >
+      <FlexWidget clickAction="OPEN_APP" style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
         <FlexWidget
           style={{
             width: 44,
             height: 44,
             borderRadius: 22,
-            backgroundColor: '#16213e',
+            backgroundColor: BG,
             justifyContent: 'center',
             alignItems: 'center',
-            borderWidth: 4,
-            borderColor: color,
+            borderWidth: 5,
+            borderColor: ACCENT,
           }}
         >
-          <TextWidget
-            text={`${percentage}%`}
-            style={{ fontSize: 12, fontWeight: 'bold', color: '#ffffff' }}
-          />
+          <TextWidget text={`${percentage}%`} style={{ fontSize: 12, fontWeight: 'bold', color: TEXT }} />
         </FlexWidget>
         <FlexWidget style={{ flexDirection: 'column', marginLeft: 10 }}>
-          <TextWidget
-            text={`${completed}/${total} done`}
-            style={{ fontSize: 13, color: '#ffffff' }}
-          />
-          <TextWidget
-            text={`🔥 ${streak} day streak`}
-            style={{ fontSize: 11, color: '#FF9800' }}
-          />
+          <TextWidget text={`${completed}/${total} done`} style={{ fontSize: 13, color: TEXT }} />
+          <TextWidget text={`${streak} day streak`} style={{ fontSize: 11, color: ACCENT }} />
         </FlexWidget>
       </FlexWidget>
 
-      {displayHabits.map((habit) => (
-        <FlexWidget
-          key={habit.id}
-          clickAction="TOGGLE_HABIT"
-          clickActionData={{ habitId: habit.id }}
-          style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 2 }}
-        >
-          <TextWidget
-            text={habit.completed ? '✅' : '⬜'}
-            style={{ fontSize: 13, marginRight: 8 }}
-          />
-          <TextWidget
-            text={habit.name}
-            style={{ fontSize: 12, color: habit.completed ? '#4CAF50' : '#ffffff' }}
-          />
-        </FlexWidget>
-      ))}
-      {habits.length > 3 && (
-        <TextWidget
-          text={`+${habits.length - 3} more`}
-          style={{ fontSize: 10, color: '#666688', marginTop: 2 }}
-        />
-      )}
+      <ListWidget style={{ flex: 1, width: 'match_parent' }}>
+        {habits.map((habit) => (
+          <FlexWidget
+            key={habit.id}
+            clickAction="OPEN_APP"
+            style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 3, width: 'match_parent' }}
+          >
+            <Checkbox done={habit.completed} size={14} />
+            <TextWidget text={habit.name} style={{ fontSize: 12, color: habit.completed ? SUBTEXT : TEXT }} />
+          </FlexWidget>
+        ))}
+      </ListWidget>
     </FlexWidget>
   );
 }

@@ -143,6 +143,25 @@ registerWidgetTaskHandler(async ({ widgetName, renderWidget, widgetAction, click
   if (!widgetName.startsWith('ForgeHabits')) return;
 
   try {
+    if (widgetAction === 'WIDGET_ADDED' || widgetAction === 'WIDGET_UPDATE') {
+      // Fill the container immediately so it's never left blank/transparent
+      // while AsyncStorage reads (and the cold-start retry) resolve below.
+      await renderWidget(
+        <FlexWidget
+          style={{
+            width: 'match_parent',
+            height: 'match_parent',
+            backgroundColor: '#080808',
+            borderRadius: 24,
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}
+        >
+          <TextWidget text="..." style={{ fontSize: 12, color: '#969696' }} />
+        </FlexWidget>
+      );
+    }
+
     if (widgetAction === 'WIDGET_CLICK' && clickAction === 'TOGGLE_HABIT' && clickActionData?.habitId) {
       await toggleHabitCompletion(clickActionData.habitId);
     }
