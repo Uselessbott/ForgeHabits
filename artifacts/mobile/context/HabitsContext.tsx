@@ -285,7 +285,7 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
           />
         ),
       });
-    });    });
+    });
     } catch (e) {
       console.warn('refreshWidget failed:', e);
     }
