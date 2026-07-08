@@ -1,0 +1,20 @@
+[33m702cceb[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m Add widget previews, resize-aware sizing, open-app behavior
+[33m99b926e[m test: disable New Architecture to isolate Bridgeless conflict with widget headless task
+[33m386ad12[m debug: minimal click test to isolate whether widget taps register at all
+[33m79e5ed5[m restore full widget feature set after confirming render pipeline itself is fine
+[33m32fbf9a[m debug: minimal static widget test to isolate render pipeline issue
+[33m6c12796[m debug: render actual error text on widget instead of blank/transparent on failure
+[33m761ff7d[m feat: resizable widgets, rounded corners everywhere, tap-to-complete on Progress ring, GitHub-style heatmap widget
+[33m3d4cd9d[m fix: retry AsyncStorage read once on cold-start widget placement race
+[33me7d6009[m fix: revert to minimal-diff task handler to isolate blank widget regression
+[33m58ad968[m fix: tap-to-complete habit rows in widgets, tighter spacing to prevent clipping
+[33mf32b086[m fix: Update HomeScreen with createHabit functionality
+[33m773b143[m fix: Add widget registration and fix monk mode notification
+[33m7d3514d[m feat: Add 3 widget types - progress, tasks, combined
+[33m1f53606[m feat: Add 3 widget types - progress, tasks, combined
+[33m5f3582e[m feat: Add 3 widget types - progress, tasks, combined
+[33m47ee460[m Fresh Expo prebuild
+[33mbcd5827[m Restore working widget
+[33m665da2a[m Implement dynamic Android widget
+[33mfc53bb2[m Fix widget task handler
+[33mabadd5b[m fix: rename index.jsx to index.tsx
