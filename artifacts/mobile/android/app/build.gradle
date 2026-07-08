@@ -1,6 +1,7 @@
 apply plugin: "com.android.application"
 apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
+apply plugin: "com.google.protobuf"
 
 def projectRoot = rootDir.getAbsoluteFile().getParentFile().getAbsolutePath()
 
@@ -127,6 +128,14 @@ android {
             useLegacyPackaging enableLegacyPackaging.toBoolean()
         }
     }
+    sourceSets {
+        main {
+            proto {
+                srcDir "src/main/proto"
+            }
+        }
+    }
+
     androidResources {
         ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:!CVS:!thumbs.db:!picasa.ini:!*~'
     }
@@ -174,9 +183,28 @@ dependencies {
         }
     }
 
+    implementation "androidx.datastore:datastore:1.1.1"
+    implementation "com.google.protobuf:protobuf-javalite:3.25.3"
+
     if (hermesEnabled.toBoolean()) {
         implementation("com.facebook.react:hermes-android")
     } else {
         implementation jscFlavor
+    }
+}
+
+protobuf {
+    protoc {
+        artifact = "com.google.protobuf:protoc:3.25.3"
+    }
+
+    generateProtoTasks {
+        all().configureEach {
+            builtins {
+                java {
+                    option "lite"
+                }
+            }
+        }
     }
 }
