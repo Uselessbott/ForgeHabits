@@ -218,6 +218,7 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
 
   function refreshWidget(habitsOverride, logsOverride) {
     if (Platform.OS !== 'android') return;
+    try {
 
     const h = habitsOverride ?? habits;
     const l = logsOverride ?? logs;
@@ -246,10 +247,10 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
 
     const heatmapWeeks = 10;
     const heatmapDays = heatmapWeeks * 7;
-    const historyStart = addDays(parseDate(today), -(heatmapDays - 1));
+    const historyStart = addDays(today, -(heatmapDays - 1));
     const history: { date: string; pct: number; hasData: boolean }[] = [];
     for (let i = 0; i < heatmapDays; i++) {
-      const ds = formatDate(addDays(historyStart, i));
+      const ds = addDays(historyStart, i);
       const scheduledForDay = h.filter(hb => !hb.archived && isHabitScheduledForDate(hb, ds));
       const totalForDay = scheduledForDay.length;
       const completedForDay = scheduledForDay.filter(hb =>
@@ -284,7 +285,10 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
           />
         ),
       });
-    });
+    });    });
+    } catch (e) {
+      console.warn('refreshWidget failed:', e);
+    }
   }
 
   function setHabitsAndSave(h: Habit[]) { setHabits(h); save(KEYS.HABITS, h); refreshWidget(h); }
