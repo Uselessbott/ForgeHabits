@@ -8,4 +8,7 @@
   <string name="widget_forgehabitscombined_description" translatable="false">Progress + tasks</string>
   <string name="widget_forgehabitsheatmap_description" translatable="false">GitHub-style completion history</string>
   <string name="glance_progress_description" translatable="false">Circular progress ring (Glance) - tap to open app</string>
+  <string name="glance_tasks_description" translatable="false">Today\'s task list (Glance) - scrollable, tap to open app</string>
+  <string name="glance_combined_description" translatable="false">Progress + tasks (Glance)</string>
+  <string name="glance_heatmap_description" translatable="false">GitHub-style completion history (Glance)</string>
 </resources>

@@ -16,31 +16,41 @@ import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.action.actionStartActivity
+import androidx.glance.appwidget.cornerRadius
+import androidx.glance.appwidget.lazy.LazyColumn
+import androidx.glance.appwidget.lazy.items
 import androidx.glance.appwidget.provideContent
 import androidx.glance.background
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.Box
 import androidx.glance.layout.Column
+import androidx.glance.layout.Row
+import androidx.glance.layout.Spacer
 import androidx.glance.layout.fillMaxSize
+import androidx.glance.layout.fillMaxWidth
+import androidx.glance.layout.height
 import androidx.glance.layout.padding
 import androidx.glance.layout.size
+import androidx.glance.layout.width
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import com.forgehabits.app.MainActivity
+import com.forgehabits.app.WidgetHabit
 import com.forgehabits.app.WidgetSnapshotRepository
 
-class ProgressGlanceWidget : GlanceAppWidget() {
+class CombinedGlanceWidget : GlanceAppWidget() {
     override val sizeMode = SizeMode.Exact
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val snapshot = WidgetSnapshotRepository.read(context)
         provideContent {
             GlanceTheme {
-                ProgressContent(
+                CombinedContent(
                     completed = snapshot?.completed ?: 0,
                     total = snapshot?.total ?: 0,
-                    streak = snapshot?.streak ?: 0
+                    streak = snapshot?.streak ?: 0,
+                    habits = snapshot?.habits ?: emptyList()
                 )
             }
         }
@@ -48,29 +58,29 @@ class ProgressGlanceWidget : GlanceAppWidget() {
 }
 
 @Composable
-private fun ProgressContent(completed: Int, total: Int, streak: Int) {
-    val size = LocalSize.current
+private fun CombinedContent(completed: Int, total: Int, streak: Int, habits: List<WidgetHabit>) {
     val context = LocalContext.current
-    val shortestSide = if (size.width < size.height) size.width else size.height
-    val ringSizeDp = (shortestSide.value * 0.5f).coerceIn(36f, 96f)
+    val openAppIntent = Intent(context, MainActivity::class.java)
     val pct = if (total > 0) completed.toFloat() / total.toFloat() else 0f
+    val size = LocalSize.current
+    val ringSizeDp = (size.height.value * 0.35f).coerceIn(36f, 72f)
     val ringSizePx = (ringSizeDp * context.resources.displayMetrics.density).toInt().coerceAtLeast(1)
-
     val ringBitmap = remember(pct, ringSizePx) {
         ProgressRingRenderer.render(ringSizePx, pct, GlanceColors.ACCENT_ARGB, GlanceColors.TRACK_ARGB)
     }
 
-    val openAppIntent = Intent(context, MainActivity::class.java)
-
-    Box(
+    Column(
         modifier = GlanceModifier
             .fillMaxSize()
             .background(GlanceColors.BG)
-            .padding(8.dp)
-            .clickable(actionStartActivity(openAppIntent)),
-        contentAlignment = Alignment.Center
+            .padding(12.dp)
     ) {
-        Column(horizontalAlignment = Alignment.Horizontal.CenterHorizontally) {
+        Row(
+            modifier = GlanceModifier
+                .fillMaxWidth()
+                .clickable(actionStartActivity(openAppIntent)),
+            verticalAlignment = Alignment.Vertical.CenterVertically
+        ) {
             Box(modifier = GlanceModifier.size(ringSizeDp.dp), contentAlignment = Alignment.Center) {
                 Image(
                     provider = ImageProvider(ringBitmap),
@@ -82,9 +92,34 @@ private fun ProgressContent(completed: Int, total: Int, streak: Int) {
                     style = TextStyle(color = GlanceColors.TEXT, fontWeight = FontWeight.Bold)
                 )
             }
-            Text(text = "$completed/$total habits", style = TextStyle(color = GlanceColors.SUBTEXT))
-            if (streak > 0) {
+            Spacer(GlanceModifier.width(10.dp))
+            Column {
+                Text(text = "$completed/$total done", style = TextStyle(color = GlanceColors.TEXT))
                 Text(text = "$streak day streak", style = TextStyle(color = GlanceColors.ACCENT))
+            }
+        }
+        Spacer(GlanceModifier.height(8.dp))
+        LazyColumn(modifier = GlanceModifier.fillMaxWidth()) {
+            items(habits, itemId = { it.id.hashCode().toLong() }) { habit ->
+                Row(
+                    modifier = GlanceModifier
+                        .fillMaxWidth()
+                        .padding(vertical = 3.dp)
+                        .clickable(actionStartActivity(openAppIntent)),
+                    verticalAlignment = Alignment.Vertical.CenterVertically
+                ) {
+                    Box(
+                        modifier = GlanceModifier
+                            .size(14.dp)
+                            .background(if (habit.completed) GlanceColors.ACCENT else GlanceColors.BG)
+                            .cornerRadius(3.dp)
+                    ) {}
+                    Spacer(GlanceModifier.width(6.dp))
+                    Text(
+                        text = habit.name,
+                        style = TextStyle(color = if (habit.completed) GlanceColors.SUBTEXT else GlanceColors.TEXT)
+                    )
+                }
             }
         }
     }
