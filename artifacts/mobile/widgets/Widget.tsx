@@ -124,23 +124,25 @@ export function ForgeHabitsWidget(props: Props) {
           text={`${streak} day streak`}
           style={{ fontSize: 12, fontWeight: 'bold', color: TEXT, marginBottom: 6 }}
         />
-        <FlexWidget style={{ flexDirection: 'row', justifyContent: 'space-between', width: 'match_parent' }}>
-          {weeks.map((week, wi) => (
-            <FlexWidget key={`w${wi}`} style={{ flexDirection: 'column' }}>
-              {week.map((day) => (
-                <FlexWidget
-                  key={day.date}
-                  style={{
-                    width: cellSize,
-                    height: cellSize,
-                    borderRadius: Math.max(2, cellSize * 0.2),
-                    backgroundColor: heatmapColor(day),
-                    marginBottom: gap,
-                  }}
-                />
-              ))}
-            </FlexWidget>
-          ))}
+        <FlexWidget style={{ flexDirection: 'column', flex: 1, justifyContent: 'center' }}>
+          <FlexWidget style={{ flexDirection: 'row', justifyContent: 'center', width: 'match_parent' }}>
+            {weeks.map((week, wi) => (
+              <FlexWidget key={`w${wi}`} style={{ flexDirection: 'column', marginRight: wi < weeks.length - 1 ? gap : 0 }}>
+                {week.map((day) => (
+                  <FlexWidget
+                    key={day.date}
+                    style={{
+                      width: cellSize,
+                      height: cellSize,
+                      borderRadius: Math.max(2, cellSize * 0.2),
+                      backgroundColor: heatmapColor(day),
+                      marginBottom: gap,
+                    }}
+                  />
+                ))}
+              </FlexWidget>
+            ))}
+          </FlexWidget>
         </FlexWidget>
       </FlexWidget>
     );
