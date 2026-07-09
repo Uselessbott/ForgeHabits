@@ -239,9 +239,16 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
     const completed = habitList.filter(hb => hb.completed).length;
     const remaining = total - completed;
 
+    // Use the fresh h/l override values directly via getCurrentStreak,
+    // NOT the local getStreakData() wrapper - that wrapper closes over the
+    // component's habits/logs React state, which has not yet committed at
+    // this point (refreshWidget is called synchronously right after
+    // setHabits/setLogs, before React re-renders). Using the stale closure
+    // here caused the streak number to disagree with the heatmap/completion
+    // count, which are computed from the fresh override values below.
     let streak = 0;
     scheduled.forEach(hb => {
-      const { current } = getStreakData(hb.id);
+      const current = getCurrentStreak(hb, l);
       if (current > streak) streak = current;
     });
 
