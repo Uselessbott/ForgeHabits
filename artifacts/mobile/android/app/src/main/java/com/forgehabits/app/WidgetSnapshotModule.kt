@@ -1,0 +1,41 @@
+package com.forgehabits.app
+
+import com.facebook.react.bridge.Promise
+import com.facebook.react.bridge.ReactApplicationContext
+import com.facebook.react.bridge.ReactContextBaseJavaModule
+import com.facebook.react.bridge.ReactMethod
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
+
+// Bridge module exposed to JS as NativeModules.WidgetSnapshotModule.
+// This is the ONLY place JS talks to native widget storage - it has no
+// knowledge of habit data itself, it just persists whatever JSON string
+// HabitsContext.refreshWidget() gives it. All snapshot computation stays
+// in JS; this module is purely a write pipe into DataStore.
+class WidgetSnapshotModule(reactContext: ReactApplicationContext) :
+    ReactContextBaseJavaModule(reactContext) {
+
+    private val moduleScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+
+    override fun getName(): String = "WidgetSnapshotModule"
+
+    @ReactMethod
+    fun writeSnapshot(snapshotJson: String, promise: Promise) {
+        moduleScope.launch {
+            try {
+                WidgetSnapshotRepository.write(reactApplicationContext, snapshotJson)
+                promise.resolve(true)
+            } catch (e: Exception) {
+                promise.reject("WIDGET_SNAPSHOT_WRITE_FAILED", e.message, e)
+            }
+        }
+    }
+
+    override fun invalidate() {
+        super.invalidate()
+        moduleScope.cancel()
+    }
+}

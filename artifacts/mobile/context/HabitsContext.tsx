@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
-import { Platform, AppState } from 'react-native';
+import { Platform, AppState, NativeModules } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   Habit, Category, HabitLog, AppSettings, DailyScore,
@@ -261,6 +261,32 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
         pct: totalForDay > 0 ? completedForDay / totalForDay : 0,
         hasData: totalForDay > 0,
       });
+    }
+
+    // Write a lightweight snapshot to native DataStore for future Glance
+    // widgets. This is purely additive - it does not affect or replace the
+    // existing react-native-android-widget sync below. Fire-and-forget with
+    // a caught rejection: a failed snapshot write should never break the
+    // React Native app or the widgets that already work.
+    try {
+      const snapshot = {
+        version: 1,
+        updatedAt: new Date().toISOString(),
+        today,
+        completed,
+        total,
+        remaining,
+        streak,
+        habits: habitList,
+        heatmap: history,
+      };
+      if (NativeModules.WidgetSnapshotModule?.writeSnapshot) {
+        NativeModules.WidgetSnapshotModule.writeSnapshot(JSON.stringify(snapshot)).catch(
+          (e: unknown) => console.warn('widget snapshot write failed:', e)
+        );
+      }
+    } catch (e) {
+      console.warn('widget snapshot serialization failed:', e);
     }
 
     const widgetConfigs = [

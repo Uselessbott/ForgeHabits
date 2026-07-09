@@ -23,9 +23,11 @@ class MainApplication : Application(), ReactApplication {
       object : DefaultReactNativeHost(this) {
         override fun getPackages(): List<ReactPackage> =
             PackageList(this).packages.apply {
-              // MonkModePackage cannot be autolinked (it lives in the app package),
-              // so it must be registered manually here.
+              // MonkModePackage and WidgetSnapshotPackage cannot be autolinked
+              // (they live in the app package), so they must be registered
+              // manually here.
               add(MonkModePackage())
+              add(WidgetSnapshotPackage())
             }
 
           override fun getJSMainModuleName(): String = ".expo/.virtual-metro-entry"
