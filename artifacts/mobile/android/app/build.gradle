@@ -194,6 +194,17 @@ dependencies {
     implementation "androidx.glance:glance-appwidget:1.1.1"
     implementation "androidx.glance:glance-material3:1.1.1"
 
+    // Force a single WorkManager version across the whole dependency graph.
+    // glance-appwidget pulls in a newer work-runtime than an existing
+    // transitive dependency's work-runtime-ktx, causing duplicate class
+    // errors (2.8+ merged the -ktx extension functions into the base artifact).
+    configurations.all {
+        resolutionStrategy {
+            force "androidx.work:work-runtime:2.11.1"
+            force "androidx.work:work-runtime-ktx:2.11.1"
+        }
+    }
+
     if (hermesEnabled.toBoolean()) {
         implementation("com.facebook.react:hermes-android")
     } else {
