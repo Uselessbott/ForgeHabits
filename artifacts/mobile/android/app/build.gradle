@@ -3,6 +3,7 @@ apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
 apply plugin: "com.google.protobuf"
 apply plugin: "org.jetbrains.kotlin.plugin.compose"
+apply plugin: "com.google.devtools.ksp"
 
 def projectRoot = rootDir.getAbsoluteFile().getParentFile().getAbsolutePath()
 
@@ -194,6 +195,10 @@ dependencies {
 
     implementation "androidx.glance:glance-appwidget:1.1.1"
     implementation "androidx.glance:glance-material3:1.1.1"
+
+    implementation "androidx.room:room-runtime:2.8.4"
+    implementation "androidx.room:room-ktx:2.8.4"
+    ksp "androidx.room:room-compiler:2.8.4"
 
     // Force a single WorkManager version across the whole dependency graph.
     // glance-appwidget pulls in a newer work-runtime than an existing

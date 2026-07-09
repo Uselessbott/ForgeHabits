@@ -22,6 +22,7 @@ import androidx.glance.layout.Column
 import androidx.glance.layout.Row
 import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.padding
+import androidx.glance.layout.Spacer
 import androidx.glance.layout.size
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
@@ -71,36 +72,40 @@ private fun HeatmapContent(streak: Int, heatmap: List<WidgetHeatmapDay>) {
             .fillMaxSize()
             .background(GlanceColors.BG)
             .padding(paddingPx.dp)
-            .clickable(actionStartActivity(openAppIntent))
+            .clickable(actionStartActivity(openAppIntent)),
+        horizontalAlignment = Alignment.Horizontal.CenterHorizontally,
+        verticalAlignment = Alignment.Vertical.CenterVertically
     ) {
         Text(
             text = "$streak day streak",
             style = TextStyle(color = GlanceColors.TEXT, fontWeight = FontWeight.Bold)
         )
-        Box(modifier = GlanceModifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Row {
-                weeks.forEachIndexed { wi, week ->
-                    Column(
-                        modifier = if (wi < weeks.size - 1)
-                            GlanceModifier.padding(end = gap.dp)
-                        else
-                            GlanceModifier
-                    ) {
-                        week.forEach { day ->
-                            val cellColor = when {
-                                !day.hasData -> GlanceColors.TRACK
-                                day.pct <= 0.0 -> GlanceColors.ACCENT_DIM
-                                day.pct < 0.5 -> GlanceColors.ACCENT_MID
-                                else -> GlanceColors.ACCENT
-                            }
-                            Box(
-                                modifier = GlanceModifier
-                                    .size(cellSize.dp)
-                                    .background(cellColor)
-                                    .cornerRadius((cellSize * 0.2f).dp)
-                                    .padding(bottom = gap.dp)
-                            ) {}
+        // No fillMaxSize wrapper here - the grid must be allowed to size
+        // itself intrinsically (sum of fixed cell sizes) rather than being
+        // stretched to fill remaining space, which is what turned square
+        // cells into vertical pills.
+        Row {
+            weeks.forEachIndexed { wi, week ->
+                Column(
+                    modifier = if (wi < weeks.size - 1)
+                        GlanceModifier.padding(end = gap.dp)
+                    else
+                        GlanceModifier
+                ) {
+                    week.forEach { day ->
+                        val cellColor = when {
+                            !day.hasData -> GlanceColors.TRACK
+                            day.pct <= 0.0 -> GlanceColors.ACCENT_DIM
+                            day.pct < 0.5 -> GlanceColors.ACCENT_MID
+                            else -> GlanceColors.ACCENT
                         }
+                        Box(
+                            modifier = GlanceModifier
+                                .size(cellSize.dp)
+                                .background(cellColor)
+                                .cornerRadius((cellSize * 0.2f).dp)
+                        ) {}
+                        Spacer(modifier = GlanceModifier.size(gap.dp))
                     }
                 }
             }
