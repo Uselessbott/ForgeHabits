@@ -1,18 +1,20 @@
 package com.forgehabits.app.glance
 
 import android.content.Context
+import android.content.Intent
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
+import androidx.glance.LocalContext
 import androidx.glance.LocalSize
 import androidx.glance.action.clickable
-import androidx.glance.appwidget.CircularProgressIndicator
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.action.actionStartActivity
+import androidx.glance.appwidget.cornerRadius
 import androidx.glance.appwidget.provideContent
 import androidx.glance.background
 import androidx.glance.layout.Alignment
@@ -62,6 +64,7 @@ class ProgressGlanceWidget : GlanceAppWidget() {
 @Composable
 private fun ProgressContent(completed: Int, total: Int, streak: Int) {
     val size = LocalSize.current
+    val context = LocalContext.current
     val shortestSide = if (size.width < size.height) size.width else size.height
     // Ring diameter scales continuously with the widget's shortest side,
     // clamped to a legible range - replaces the old fixed-64dp ring that
@@ -69,21 +72,24 @@ private fun ProgressContent(completed: Int, total: Int, streak: Int) {
     val ringSize = (shortestSide.value * 0.5f).coerceIn(36f, 96f)
     val pct = if (total > 0) completed.toFloat() / total.toFloat() else 0f
 
+    val openAppIntent = Intent(context, MainActivity::class.java)
+
     Box(
         modifier = GlanceModifier
             .fillMaxSize()
             .background(BG)
             .padding(8.dp)
-            .clickable(actionStartActivity<MainActivity>()),
+            .clickable(actionStartActivity(openAppIntent)),
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.Horizontal.CenterHorizontally) {
-            Box(contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(
-                    progress = pct,
-                    color = ACCENT,
-                    modifier = GlanceModifier.size(ringSize.dp)
-                )
+            Box(
+                modifier = GlanceModifier
+                    .size(ringSize.dp)
+                    .background(ACCENT)
+                    .cornerRadius(ringSize.dp / 2),
+                contentAlignment = Alignment.Center
+            ) {
                 Text(
                     text = "${(pct * 100).toInt()}%",
                     style = TextStyle(color = TEXT, fontWeight = FontWeight.Bold)
