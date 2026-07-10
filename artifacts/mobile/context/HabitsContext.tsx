@@ -134,7 +134,6 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
           setFreezes(loadedFreezes);
           if (newLogs.length !== loadedLogs.length) save(KEYS.LOGS, newLogs);
           if (finalSettings !== loadedSettings) save(KEYS.SETTINGS, finalSettings);
-          refreshWidget(loadedHabits, newLogs);
         }
       } catch {
         setCategories(DEFAULT_CATEGORIES);
@@ -142,6 +141,12 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(false);
     })();
   }, []);
+
+  useEffect(() => {
+    if (isLoading) return;
+    refreshWidget(habits, logs);
+  }, [habits, logs, isLoading]);
+
 
   useEffect(() => {
     if (Platform.OS !== 'android' || isLoading) return;
@@ -324,9 +329,17 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  function setHabitsAndSave(h: Habit[]) { setHabits(h); save(KEYS.HABITS, h); refreshWidget(h); }
+  function setHabitsAndSave(h: Habit[]) {
+    setHabits(h);
+    save(KEYS.HABITS, h);
+    refreshWidget(h, logs);
+  }
   function setCatsAndSave(c: Category[]) { setCategories(c); save(KEYS.CATEGORIES, c); }
-  function setLogsAndSave(l: HabitLog[]) { setLogs(l); save(KEYS.LOGS, l); refreshWidget(undefined, l); }
+  function setLogsAndSave(l: HabitLog[]) {
+    setLogs(l);
+    save(KEYS.LOGS, l);
+    refreshWidget(habits, l);
+  }
   function setSettingsAndSave(s: AppSettings) { setSettings(s); save(KEYS.SETTINGS, s); }
   function setFreezesAndSave(f: StreakFreeze[]) { setFreezes(f); save(KEYS.FREEZES, f); }
 
@@ -346,9 +359,17 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
   }
 
   function deleteHabit(id: string) {
-    setHabitsAndSave(habits.filter(h => h.id !== id));
-    setLogsAndSave(logs.filter(l => l.habitId !== id));
+    const newHabits = habits.filter(h => h.id !== id);
+    const newLogs = logs.filter(l => l.habitId !== id);
+
+    setHabits(newHabits);
+    setLogs(newLogs);
     setFreezesAndSave(freezes.filter(f => f.habitId !== id));
+
+    save(KEYS.HABITS, newHabits);
+    save(KEYS.LOGS, newLogs);
+
+    refreshWidget(newHabits, newLogs);
   }
 
   function archiveHabit(id: string) { updateHabit(id, { archived: true }); }
@@ -488,7 +509,6 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
     // useEffect elsewhere in this file) - that would throw a ReferenceError
     // every time resetAllData() ran, crashing before the widget ever
     // refreshed. Pass the actual freshly-reset empty arrays instead.
-    refreshWidget([], []);
   }
 
   function getHabitsForDate(date: string): Habit[] {
