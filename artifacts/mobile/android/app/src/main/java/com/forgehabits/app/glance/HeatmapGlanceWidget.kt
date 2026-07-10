@@ -40,7 +40,8 @@ class HeatmapGlanceWidget : GlanceAppWidget() {
             GlanceTheme {
                 HeatmapContent(
                     streak = snapshot?.streak ?: 0,
-                    heatmap = snapshot?.heatmap ?: emptyList()
+                    heatmap = snapshot?.heatmap ?: emptyList(),
+                    snapshotToday = snapshot?.today ?: "null"
                 )
             }
         }
@@ -48,7 +49,7 @@ class HeatmapGlanceWidget : GlanceAppWidget() {
 }
 
 @Composable
-private fun HeatmapContent(streak: Int, heatmap: List<WidgetHeatmapDay>) {
+private fun HeatmapContent(streak: Int, heatmap: List<WidgetHeatmapDay>, snapshotToday: String = "") {
     val context = LocalContext.current
     val size = LocalSize.current
     val openAppIntent = Intent(context, MainActivity::class.java)
@@ -79,6 +80,14 @@ private fun HeatmapContent(streak: Int, heatmap: List<WidgetHeatmapDay>) {
         Text(
             text = "$streak day streak",
             style = TextStyle(color = GlanceColors.TEXT, fontWeight = FontWeight.Bold)
+        )
+        // TEMPORARY DIAGNOSTIC - answers: is today's entry present, does its
+        // date match, what's its actual pct/hasData. Remove once the real
+        // bug is found.
+        val lastDay = heatmap.lastOrNull()
+        Text(
+            text = "DBG today=$snapshotToday last=${lastDay?.date} pct=${lastDay?.pct} hasData=${lastDay?.hasData} n=${heatmap.size}",
+            style = TextStyle(color = GlanceColors.ACCENT)
         )
         // No fillMaxSize wrapper here - the grid must be allowed to size
         // itself intrinsically (sum of fixed cell sizes) rather than being
