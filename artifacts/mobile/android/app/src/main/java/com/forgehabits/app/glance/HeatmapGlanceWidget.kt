@@ -104,6 +104,13 @@ private fun HeatmapContent(
 
         Spacer(GlanceModifier.size(6.dp))
 
+        Text(
+            text = "DBG days=${heatmap.size} first5=" + heatmap.take(5).joinToString(" | ") {
+                "hd=${it.hasData},pct=${"%.2f".format(it.pct)}"
+            },
+            style = TextStyle(color = GlanceColors.ACCENT)
+        )
+
         Box(
             modifier = GlanceModifier.fillMaxSize(),
             contentAlignment = Alignment.Center
