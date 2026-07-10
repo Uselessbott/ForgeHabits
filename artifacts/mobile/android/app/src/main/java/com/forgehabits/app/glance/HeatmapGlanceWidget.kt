@@ -56,15 +56,20 @@ private fun HeatmapContent(streak: Int, heatmap: List<WidgetHeatmapDay>) {
     val cols = weeks.size.coerceAtLeast(1)
     val paddingPx = 12f
     val headerHeight = 24f
-    val gap = 3f
-    // Driven by LocalSize.current under SizeMode.Exact - this is real,
-    // continuous responsive sizing, not the broken widgetInfo plumbing
-    // from the old react-native-android-widget implementation.
+
     val availableWidth = (size.width.value - paddingPx * 2).coerceAtLeast(40f)
     val availableHeight = (size.height.value - paddingPx * 2 - headerHeight).coerceAtLeast(30f)
-    val cellFromWidth = (availableWidth - gap * (cols - 1)) / cols
-    val cellFromHeight = (availableHeight - gap * 6) / 7
+
+    val provisionalGap = 3f
+    val cellFromWidth = (availableWidth - provisionalGap * (cols - 1)) / cols
+    val cellFromHeight = (availableHeight - provisionalGap * 6) / 7
     val cellSize = minOf(cellFromWidth, cellFromHeight).coerceAtLeast(4f)
+
+    val gap = when {
+        cellSize >= 14f -> 4f
+        cellSize >= 9f -> 3f
+        else -> 2f
+    }
 
     Column(
         modifier = GlanceModifier

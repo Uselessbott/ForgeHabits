@@ -40,9 +40,6 @@ export default function TodayScreen() {
   const quote = useMemo(() => getDailyQuote(), [today]);
   const remaining = score.total - score.completed;
 
-  const debugInfo = `Habits: ${habits.length}
-Today's: ${todayHabits.length}`;
-
   const bestStreak = useMemo(() => {
     if (todayHabits.length === 0) return 0;
     return todayHabits.reduce((max, h) => Math.max(max, getStreakData(h.id).current), 0);
@@ -130,10 +127,6 @@ Today's: ${todayHabits.length}`;
             </Text>
           </View>
         )}
-
-        <View style={{padding:10,borderWidth:1,borderColor:'red',marginBottom:10}}>
-          <Text style={{color:'red'}}>{debugInfo}</Text>
-        </View>
 
         
         {/* Greeting */}
