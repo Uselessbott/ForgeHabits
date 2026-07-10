@@ -14,14 +14,6 @@ object GlanceColors {
     val SUBTEXT = ColorProvider(Color(0xFF969696))
     val TRACK = ColorProvider(Color(0xFF1C1C1C))
 
-    // TEMPORARY DIAGNOSTIC COLORS - wildly different, unmistakable hues to
-    // rule out "colors too visually similar to distinguish" vs "background
-    // genuinely not rendering at all." Swap heatmap cell colors to these.
-    val DBG_TRACK = ColorProvider(Color(0xFF0000FF))      // pure blue
-    val DBG_ACCENT_DIM = ColorProvider(Color(0xFF9B30FF))  // purple
-    val DBG_ACCENT_MID = ColorProvider(Color(0xFF00FF00))  // bright green
-    val DBG_ACCENT = ColorProvider(Color(0xFFFFFF00))      // bright yellow
-
     // Plain ARGB ints for use with android.graphics.Paint, which doesn't
     // accept Glance's ColorProvider.
     const val ACCENT_ARGB = 0xFFFF6B35.toInt()

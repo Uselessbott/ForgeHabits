@@ -492,32 +492,7 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
   }
 
   function getHabitsForDate(date: string): Habit[] {
-    console.log("========== getHabitsForDate ==========");
-    console.log("Date:", date);
-    console.log("Habits count:", habits.length);
-
-    habits.forEach(h => {
-      const scheduled = isHabitScheduledForDate(h, date);
-      console.log({
-        id: h.id,
-        name: h.name,
-        frequency: h.frequency,
-        createdAt: h.createdAt,
-        archived: h.archived,
-        scheduled,
-        habit: h,
-      });
-    });
-
-    const filtered = habits.filter(
-      h => !h.archived && isHabitScheduledForDate(h, date)
-    );
-
-    console.log("Today's habits:", filtered.length);
-    console.log(filtered);
-    console.log("======================================");
-
-    return filtered;
+    return habits.filter(h => !h.archived && isHabitScheduledForDate(h, date));
   }
 
   function getLogForHabit(habitId: string, date: string): HabitLog | undefined {
