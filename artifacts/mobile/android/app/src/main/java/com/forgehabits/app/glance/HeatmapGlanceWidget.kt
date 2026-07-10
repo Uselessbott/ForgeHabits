@@ -3,6 +3,7 @@ package com.forgehabits.app.glance
 import android.content.Context
 import android.content.Intent
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.key
 import androidx.compose.ui.unit.dp
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
@@ -115,16 +116,20 @@ private fun HeatmapContent(streak: Int, heatmap: List<WidgetHeatmapDay>, snapsho
                             day.pct < 0.5 -> GlanceColors.ACCENT_MID
                             else -> GlanceColors.ACCENT
                         }
-                        Box(
-                            modifier = GlanceModifier
-                                .size(cellSize.dp)
-                                .background(cellColor)
-                            // TEMPORARY EXPERIMENT: cornerRadius() removed
-                            // to isolate whether combining it with
-                            // background() is what's preventing the color
-                            // from rendering. Cells will be square, not
-                            // rounded, until we confirm/rule this out.
-                        ) {}
+                        // key() gives each cell a stable identity tied to its
+                        // actual date, rather than relying on its position in
+                        // the loop. Structurally-identical composables that
+                        // differ only in a captured variable can, in Glance's
+                        // RemoteViews translation layer, fail to recompose
+                        // correctly without this - this is the hypothesis
+                        // we're testing for the color-not-updating bug.
+                        key(day.date) {
+                            Box(
+                                modifier = GlanceModifier
+                                    .size(cellSize.dp)
+                                    .background(cellColor)
+                            ) {}
+                        }
                         Spacer(modifier = GlanceModifier.size(gap.dp))
                     }
                 }
