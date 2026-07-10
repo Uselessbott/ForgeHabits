@@ -483,7 +483,12 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
     setSettings(DEFAULT_SETTINGS);
     setFreezes([]);
     save(KEYS.CATEGORIES, DEFAULT_CATEGORIES);
-    refreshWidget(loadedHabits, newLogs);
+    // Bug fix: this previously referenced loadedHabits/newLogs, which don't
+    // exist in this function's scope at all (they belong to the cold-start
+    // useEffect elsewhere in this file) - that would throw a ReferenceError
+    // every time resetAllData() ran, crashing before the widget ever
+    // refreshed. Pass the actual freshly-reset empty arrays instead.
+    refreshWidget([], []);
   }
 
   function getHabitsForDate(date: string): Habit[] {

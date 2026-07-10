@@ -85,8 +85,15 @@ private fun HeatmapContent(streak: Int, heatmap: List<WidgetHeatmapDay>, snapsho
         // date match, what's its actual pct/hasData. Remove once the real
         // bug is found.
         val lastDay = heatmap.lastOrNull()
+        val lastDayBranch = when {
+            lastDay == null -> "NULL"
+            !lastDay.hasData -> "TRACK"
+            lastDay.pct <= 0.0 -> "ACCENT_DIM"
+            lastDay.pct < 0.5 -> "ACCENT_MID"
+            else -> "ACCENT"
+        }
         Text(
-            text = "DBG today=$snapshotToday last=${lastDay?.date} pct=${lastDay?.pct} hasData=${lastDay?.hasData} n=${heatmap.size}",
+            text = "DBG today=$snapshotToday last=${lastDay?.date} pct=${lastDay?.pct} branch=$lastDayBranch n=${heatmap.size}",
             style = TextStyle(color = GlanceColors.ACCENT)
         )
         // No fillMaxSize wrapper here - the grid must be allowed to size
@@ -112,7 +119,11 @@ private fun HeatmapContent(streak: Int, heatmap: List<WidgetHeatmapDay>, snapsho
                             modifier = GlanceModifier
                                 .size(cellSize.dp)
                                 .background(cellColor)
-                                .cornerRadius((cellSize * 0.2f).dp)
+                            // TEMPORARY EXPERIMENT: cornerRadius() removed
+                            // to isolate whether combining it with
+                            // background() is what's preventing the color
+                            // from rendering. Cells will be square, not
+                            // rounded, until we confirm/rule this out.
                         ) {}
                         Spacer(modifier = GlanceModifier.size(gap.dp))
                     }
