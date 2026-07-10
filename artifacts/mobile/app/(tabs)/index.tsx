@@ -43,9 +43,6 @@ export default function TodayScreen() {
   const debugInfo = `Habits: ${habits.length}
 Today's: ${todayHabits.length}`;
 
-  const debugInfo = `Habits: ${habits.length}
-Today's: ${todayHabits.length}`;
-
   const bestStreak = useMemo(() => {
     if (todayHabits.length === 0) return 0;
     return todayHabits.reduce((max, h) => Math.max(max, getStreakData(h.id).current), 0);
@@ -138,10 +135,7 @@ Today's: ${todayHabits.length}`;
           <Text style={{color:'red'}}>{debugInfo}</Text>
         </View>
 
-        <View style={{padding:12,borderWidth:1,borderColor:'red',marginBottom:12}}>
-          <Text style={{color:'red'}}>{debugInfo}</Text>
-        </View>
-
+        
         {/* Greeting */}
         <Text style={[styles.greeting, { color: colors.foreground }]}>{greeting}</Text>
 
