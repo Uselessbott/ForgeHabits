@@ -16,13 +16,7 @@ import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.appwidget.cornerRadius
 import androidx.glance.appwidget.provideContent
 import androidx.glance.background
-import androidx.glance.layout.Alignment
-import androidx.glance.layout.Box
-import androidx.glance.layout.Column
-import androidx.glance.layout.Row
-import androidx.glance.layout.fillMaxSize
-import androidx.glance.layout.padding
-import androidx.glance.layout.size
+import androidx.glance.layout.*
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
@@ -35,6 +29,7 @@ class HeatmapGlanceWidget : GlanceAppWidget() {
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val snapshot = WidgetSnapshotRepository.read(context)
+
         provideContent {
             GlanceTheme {
                 HeatmapContent(
@@ -47,23 +42,42 @@ class HeatmapGlanceWidget : GlanceAppWidget() {
 }
 
 @Composable
-private fun HeatmapContent(streak: Int, heatmap: List<WidgetHeatmapDay>) {
+private fun HeatmapContent(
+    streak: Int,
+    heatmap: List<WidgetHeatmapDay>
+) {
     val context = LocalContext.current
     val size = LocalSize.current
     val openAppIntent = Intent(context, MainActivity::class.java)
 
     val weeks = heatmap.chunked(7)
     val cols = weeks.size.coerceAtLeast(1)
-    val paddingPx = 12f
+
+    val paddingPx = when {
+        size.width.value < 150f -> 6f
+        size.width.value < 220f -> 8f
+        else -> 12f
+    }
+
     val headerHeight = 24f
 
-    val availableWidth = (size.width.value - paddingPx * 2).coerceAtLeast(40f)
-    val availableHeight = (size.height.value - paddingPx * 2 - headerHeight).coerceAtLeast(30f)
+    val availableWidth =
+        (size.width.value - paddingPx * 2).coerceAtLeast(40f)
+
+    val availableHeight =
+        (size.height.value - paddingPx * 2 - headerHeight)
+            .coerceAtLeast(30f)
 
     val provisionalGap = 3f
-    val cellFromWidth = (availableWidth - provisionalGap * (cols - 1)) / cols
-    val cellFromHeight = (availableHeight - provisionalGap * 6) / 7
-    val cellSize = minOf(cellFromWidth, cellFromHeight).coerceAtLeast(4f)
+
+    val cellFromWidth =
+        (availableWidth - provisionalGap * (cols - 1)) / cols
+
+    val cellFromHeight =
+        (availableHeight - provisionalGap * 6) / 7
+
+    val cellSize =
+        minOf(cellFromWidth, cellFromHeight).coerceAtLeast(4f)
 
     val gap = when {
         cellSize >= 14f -> 4f
@@ -76,35 +90,59 @@ private fun HeatmapContent(streak: Int, heatmap: List<WidgetHeatmapDay>) {
             .fillMaxSize()
             .background(GlanceColors.BG)
             .padding(paddingPx.dp)
-            .clickable(actionStartActivity(openAppIntent))
+            .clickable(actionStartActivity(openAppIntent)),
+        horizontalAlignment = Alignment.Horizontal.CenterHorizontally
     ) {
+
         Text(
             text = "$streak day streak",
-            style = TextStyle(color = GlanceColors.TEXT, fontWeight = FontWeight.Bold)
+            style = TextStyle(
+                color = GlanceColors.TEXT,
+                fontWeight = FontWeight.Bold
+            )
         )
-        Box(modifier = GlanceModifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+
+        Spacer(GlanceModifier.size(6.dp))
+
+        Box(
+            modifier = GlanceModifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+
             Row {
+
                 weeks.forEachIndexed { wi, week ->
+
                     Column(
-                        modifier = if (wi < weeks.size - 1)
-                            GlanceModifier.padding(end = gap.dp)
-                        else
-                            GlanceModifier
+                        modifier =
+                            if (wi < weeks.lastIndex)
+                                GlanceModifier.padding(end = gap.dp)
+                            else
+                                GlanceModifier
                     ) {
-                        week.forEach { day ->
-                            val cellColor = when {
+
+                        week.forEachIndexed { index, day ->
+
+                            val color = when {
                                 !day.hasData -> GlanceColors.TRACK
                                 day.pct <= 0.0 -> GlanceColors.ACCENT_DIM
                                 day.pct < 0.5 -> GlanceColors.ACCENT_MID
                                 else -> GlanceColors.ACCENT
                             }
+
                             Box(
                                 modifier = GlanceModifier
                                     .size(cellSize.dp)
-                                    .background(cellColor)
-                                    .cornerRadius((cellSize * 0.2f).dp)
-                                    .padding(bottom = gap.dp)
+                                    .background(color)
+                                    .cornerRadius((cellSize * .2f).dp)
                             ) {}
+
+                            if (index != week.lastIndex) {
+                                Spacer(
+                                    modifier =
+                                        GlanceModifier.size(gap.dp)
+                                )
+                            }
                         }
                     }
                 }
