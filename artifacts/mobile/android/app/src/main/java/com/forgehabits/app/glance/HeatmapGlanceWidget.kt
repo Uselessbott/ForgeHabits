@@ -59,7 +59,7 @@ private fun HeatmapContent(
         else -> 12f
     }
 
-    val headerHeight = 24f
+    val headerHeight = 34f  // streak text + 6dp spacer, with safety margin
 
     val availableWidth =
         (size.width.value - paddingPx * 2).coerceAtLeast(40f)
@@ -103,13 +103,6 @@ private fun HeatmapContent(
         )
 
         Spacer(GlanceModifier.size(6.dp))
-
-        Text(
-            text = "DBG w=${size.width.value.toInt()} h=${size.height.value.toInt()} " +
-                "availH=${"%.1f".format(availableHeight)} cellH=${"%.1f".format(cellFromHeight)} " +
-                "cellSize=${"%.1f".format(cellSize)} gap=${gap} rows=${weeks.last().size}",
-            style = TextStyle(color = GlanceColors.ACCENT)
-        )
 
         Box(
             modifier = GlanceModifier.fillMaxSize(),
