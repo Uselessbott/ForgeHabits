@@ -105,9 +105,10 @@ private fun HeatmapContent(
         Spacer(GlanceModifier.size(6.dp))
 
         Text(
-            text = "DBG last5=" + heatmap.takeLast(5).joinToString(" | ") {
-                "hd=${it.hasData},pct=${"%.2f".format(it.pct)}"
-            },
+            text = "DBG w=${size.width.value.toInt()} h=${size.height.value.toInt()} " +
+                "cellW=${"%.1f".format(cellFromWidth)} cellH=${"%.1f".format(cellFromHeight)} " +
+                "cellSize=${"%.1f".format(cellSize)} gap=${gap} weeks=${weeks.size} " +
+                "rowsInLastWeek=${weeks.last().size}",
             style = TextStyle(color = GlanceColors.ACCENT)
         )
 
