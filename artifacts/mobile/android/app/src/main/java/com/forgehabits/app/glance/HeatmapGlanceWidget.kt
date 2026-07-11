@@ -88,12 +88,7 @@ private fun HeatmapContent(streak: Int, heatmap: List<WidgetHeatmapDay>) {
                             GlanceModifier
                     ) {
                         week.forEachIndexed { index, day ->
-                            val cellColor = when {
-                                !day.hasData -> GlanceColors.TRACK
-                                day.pct <= 0.0 -> GlanceColors.ACCENT_DIM
-                                day.pct < 0.5 -> GlanceColors.ACCENT_MID
-                                else -> GlanceColors.ACCENT
-                            }
+                            val cellColor = GlanceColors.ACCENT // TEMP: force all cells orange to isolate clipping vs color bug
                             Box(
                                 modifier = GlanceModifier
                                     .size(cellSize.dp)
