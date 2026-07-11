@@ -104,13 +104,6 @@ private fun HeatmapContent(
 
         Spacer(GlanceModifier.size(6.dp))
 
-        Text(
-            text = "DBG w=${size.width.value.toInt()} h=${size.height.value.toInt()} " +
-                "cellW=${"%.1f".format(cellFromWidth)} cellH=${"%.1f".format(cellFromHeight)} " +
-                "cellSize=${"%.1f".format(cellSize)} gap=${gap} weeks=${weeks.size} " +
-                "rowsInLastWeek=${weeks.last().size}",
-            style = TextStyle(color = GlanceColors.ACCENT)
-        )
 
         Box(
             modifier = GlanceModifier.fillMaxSize(),

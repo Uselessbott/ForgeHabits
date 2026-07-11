@@ -67,15 +67,6 @@ private fun TasksContent(completed: Int, total: Int, habits: List<WidgetHabit>) 
             text = "Today ($completed/$total)",
             style = TextStyle(color = GlanceColors.TEXT, fontWeight = FontWeight.Bold)
         )
-        // TEMPORARY DIAGNOSTIC - shows exactly what this widget instance
-        // sees at render time: habit count and names. If a just-created
-        // habit is missing from this line, the snapshot itself doesn't
-        // have it yet (a data/JS bug). If it's present here but not in the
-        // list below, it's a LazyColumn rendering bug.
-        Text(
-            text = "DBG n=${habits.size} names=${habits.joinToString(",") { it.name }}",
-            style = TextStyle(color = GlanceColors.ACCENT)
-        )
         Spacer(GlanceModifier.height(6.dp))
         // LazyColumn = real, native scrolling - shows every habit, no
         // truncation, no ListWidget-collection-service headaches.
