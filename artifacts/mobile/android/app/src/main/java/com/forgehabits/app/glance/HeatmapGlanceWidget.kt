@@ -75,7 +75,10 @@ private fun HeatmapContent(streak: Int, heatmap: List<WidgetHeatmapDay>) {
             .clickable(actionStartActivity(openAppIntent))
     ) {
         Text(
-            text = "$streak day streak",
+            text = "$streak day streak " +
+                heatmap.takeLast(3).joinToString(" | ") {
+                    "hd=${it.hasData},pct=${"%.2f".format(it.pct)}"
+                },
             style = TextStyle(color = GlanceColors.TEXT, fontWeight = FontWeight.Bold)
         )
         Row {
