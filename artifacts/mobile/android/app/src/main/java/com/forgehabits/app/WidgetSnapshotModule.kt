@@ -9,10 +9,13 @@ import com.forgehabits.app.glance.CombinedGlanceWidget
 import com.forgehabits.app.glance.HeatmapGlanceWidget
 import com.forgehabits.app.glance.ProgressGlanceWidget
 import com.forgehabits.app.glance.TasksGlanceWidget
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 
 // Bridge module exposed to JS as NativeModules.WidgetSnapshotModule.
@@ -25,22 +28,32 @@ class WidgetSnapshotModule(reactContext: ReactApplicationContext) :
 
     private val moduleScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
+    // Only the most recent write should ever apply. If a newer writeSnapshot()
+    // call comes in while an older one is still in flight, the older one is
+    // cancelled so it can never call updateAll() with stale data after the
+    // newer one has already landed.
+    private var pendingWrite: Job? = null
+
     override fun getName(): String = "WidgetSnapshotModule"
 
     @ReactMethod
     fun writeSnapshot(snapshotJson: String, promise: Promise) {
-        moduleScope.launch {
+        // Cancel any write still in flight - only the newest call should
+        // ever be allowed to reach DataStore/updateAll(). This prevents
+        // out-of-order completions from clobbering fresher data with stale
+        // data (the "shows 2 completed instead of 5" bug).
+        pendingWrite?.cancel()
+        pendingWrite = moduleScope.launch {
             try {
                 WidgetSnapshotRepository.write(reactApplicationContext, snapshotJson)
-                // Tell every Glance widget class to recompose immediately.
-                // This is the piece that was missing before: writing to
-                // DataStore alone does not repaint an already-placed widget -
-                // updateAll() is what actually triggers the redraw.
+                ensureActive()
                 ProgressGlanceWidget().updateAll(reactApplicationContext)
                 TasksGlanceWidget().updateAll(reactApplicationContext)
                 CombinedGlanceWidget().updateAll(reactApplicationContext)
                 HeatmapGlanceWidget().updateAll(reactApplicationContext)
                 promise.resolve(true)
+            } catch (e: CancellationException) {
+                // Superseded by a newer write - not an error, just drop it.
             } catch (e: Exception) {
                 promise.reject("WIDGET_SNAPSHOT_WRITE_FAILED", e.message, e)
             }

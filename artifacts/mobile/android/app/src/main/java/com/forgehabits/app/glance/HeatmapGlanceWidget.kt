@@ -59,7 +59,7 @@ private fun HeatmapContent(
         else -> 12f
     }
 
-    val headerHeight = 34f  // streak text + 6dp spacer, with safety margin
+    val headerHeight = 80f  // TEMP: drastically inflated to test if row count responds at all
 
     val availableWidth =
         (size.width.value - paddingPx * 2).coerceAtLeast(40f)
@@ -94,8 +94,7 @@ private fun HeatmapContent(
     val cellFromHeight =
         (availableHeight - gap * 6) / 7
 
-    val cellSize =
-        minOf(cellFromWidth, cellFromHeight).coerceAtLeast(4f)
+    val cellSize = 6f // TEMP: hardcoded tiny to rule out sizing math as the constraint
 
     Column(
         modifier = GlanceModifier
