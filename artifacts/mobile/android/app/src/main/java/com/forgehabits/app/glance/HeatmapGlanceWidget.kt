@@ -14,6 +14,8 @@ import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.appwidget.cornerRadius
+import androidx.glance.appwidget.lazy.LazyColumn
+import androidx.glance.appwidget.lazy.items
 import androidx.glance.appwidget.provideContent
 import androidx.glance.background
 import androidx.glance.layout.*
@@ -59,7 +61,7 @@ private fun HeatmapContent(
         else -> 12f
     }
 
-    val headerHeight = 80f  // TEMP: drastically inflated to test if row count responds at all
+    val headerHeight = 34f  // streak text + 6dp spacer, with safety margin
 
     val availableWidth =
         (size.width.value - paddingPx * 2).coerceAtLeast(40f)
@@ -94,7 +96,8 @@ private fun HeatmapContent(
     val cellFromHeight =
         (availableHeight - gap * 6) / 7
 
-    val cellSize = 6f // TEMP: hardcoded tiny to rule out sizing math as the constraint
+    val cellSize =
+        minOf(cellFromWidth, cellFromHeight).coerceAtLeast(4f)
 
     Column(
         modifier = GlanceModifier
@@ -115,25 +118,17 @@ private fun HeatmapContent(
 
         Spacer(GlanceModifier.size(6.dp))
 
-        Box(
-            modifier = GlanceModifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-
-            Row {
-
-                weeks.forEachIndexed { wi, week ->
-
-                    Column(
-                        modifier =
-                            if (wi < weeks.lastIndex)
-                                GlanceModifier.padding(end = gap.dp)
-                            else
-                                GlanceModifier
-                    ) {
-
-                        week.forEachIndexed { index, day ->
-
+        // Grid is built with LazyColumn/items() row-by-row, the same
+        // construct confirmed working for the Tasks widget's checkbox
+        // background. A plain forEach-built Row/Column grid does NOT
+        // reliably render per-cell background colors in this Glance
+        // version - LazyColumn's item-based rendering does.
+        LazyColumn(modifier = GlanceModifier.fillMaxWidth()) {
+            items(7, itemId = { it.toLong() }) { rowIndex ->
+                Row(modifier = GlanceModifier.padding(bottom = gap.dp)) {
+                    weeks.forEachIndexed { wi, week ->
+                        val day = week.getOrNull(rowIndex)
+                        if (day != null) {
                             val color = when {
                                 !day.hasData -> GlanceColors.TRACK
                                 day.pct <= 0.0 -> GlanceColors.ACCENT_DIM
@@ -145,14 +140,11 @@ private fun HeatmapContent(
                                 modifier = GlanceModifier
                                     .size(cellSize.dp)
                                     .background(color)
-                                    .cornerRadius((cellSize * .2f).dp)
+                                    .cornerRadius((cellSize * 0.2f).dp)
                             ) {}
 
-                            if (index != week.lastIndex) {
-                                Spacer(
-                                    modifier =
-                                        GlanceModifier.size(gap.dp)
-                                )
+                            if (wi < weeks.size - 1) {
+                                Spacer(modifier = GlanceModifier.size(gap.dp))
                             }
                         }
                     }
