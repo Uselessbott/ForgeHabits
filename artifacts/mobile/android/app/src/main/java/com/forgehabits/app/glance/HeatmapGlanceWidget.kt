@@ -23,6 +23,7 @@ import androidx.glance.layout.Row
 import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.padding
 import androidx.glance.layout.size
+import androidx.glance.layout.Spacer
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
@@ -86,7 +87,7 @@ private fun HeatmapContent(streak: Int, heatmap: List<WidgetHeatmapDay>) {
                         else
                             GlanceModifier
                     ) {
-                        week.forEach { day ->
+                        week.forEachIndexed { index, day ->
                             val cellColor = when {
                                 !day.hasData -> GlanceColors.TRACK
                                 day.pct <= 0.0 -> GlanceColors.ACCENT_DIM
@@ -98,8 +99,10 @@ private fun HeatmapContent(streak: Int, heatmap: List<WidgetHeatmapDay>) {
                                     .size(cellSize.dp)
                                     .background(cellColor)
                                     .cornerRadius((cellSize * 0.2f).dp)
-                                    .padding(bottom = gap.dp)
                             ) {}
+                            if (index != week.lastIndex) {
+                                Spacer(modifier = GlanceModifier.size(gap.dp))
+                            }
                         }
                     }
                 }
