@@ -78,6 +78,12 @@ private fun HeatmapContent(streak: Int, heatmap: List<WidgetHeatmapDay>) {
             text = "$streak day streak",
             style = TextStyle(color = GlanceColors.TEXT, fontWeight = FontWeight.Bold)
         )
+        Text(
+            text = "H=${"%.1f".format(size.height.value)} avail=${"%.1f".format(availableHeight)} " +
+                "cell=${"%.1f".format(cellSize)} need=${"%.1f".format(7 * cellSize + 6 * gap)} " +
+                "hdr=${"%.1f".format(headerHeight)} pad=${"%.1f".format(paddingPx)}",
+            style = TextStyle(color = GlanceColors.ACCENT)
+        )
         Box(modifier = GlanceModifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Row {
                 weeks.forEachIndexed { wi, week ->
