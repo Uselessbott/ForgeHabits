@@ -118,6 +118,13 @@ private fun HeatmapContent(
 
         Spacer(GlanceModifier.size(6.dp))
 
+        Text(
+            text = "DBG weeks=${weeks.size} last5=" + heatmap.takeLast(5).joinToString(" | ") {
+                "hd=${it.hasData},pct=${"%.2f".format(it.pct)}"
+            },
+            style = TextStyle(color = GlanceColors.ACCENT)
+        )
+
         // Grid is built with LazyColumn/items() row-by-row, the same
         // construct confirmed working for the Tasks widget's checkbox
         // background. A plain forEach-built Row/Column grid does NOT
