@@ -65,7 +65,7 @@ private fun HeatmapContent(streak: Int, heatmap: List<WidgetHeatmapDay>) {
     val availableHeight = (size.height.value - paddingPx * 2 - headerHeight).coerceAtLeast(30f)
     val cellFromWidth = (availableWidth - gap * (cols - 1)) / cols
     val cellFromHeight = (availableHeight - gap * 6) / 7
-    val cellSize = minOf(cellFromWidth, cellFromHeight).coerceAtLeast(4f)
+    val cellSize = 8f // TEMP: isolate whether container itself clips regardless of math
 
     Column(
         modifier = GlanceModifier
