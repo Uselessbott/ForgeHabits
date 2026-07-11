@@ -64,7 +64,8 @@ private fun HeatmapContent(
     val headerHeight = 34f  // streak text + 6dp spacer, with safety margin
 
     val availableWidth =
-        (size.width.value - paddingPx * 2).coerceAtLeast(40f)
+        (size.width.value - paddingPx * 2 - 10f) // safety margin for RemoteViews rounding
+            .coerceAtLeast(40f)
 
     val availableHeight =
         (size.height.value - paddingPx * 2 - headerHeight - 10f) // safety margin for RemoteViews rounding
@@ -117,13 +118,6 @@ private fun HeatmapContent(
         )
 
         Spacer(GlanceModifier.size(6.dp))
-
-        Text(
-            text = "DBG weeks=${weeks.size} last5=" + heatmap.takeLast(5).joinToString(" | ") {
-                "hd=${it.hasData},pct=${"%.2f".format(it.pct)}"
-            },
-            style = TextStyle(color = GlanceColors.ACCENT)
-        )
 
         // Grid is built with LazyColumn/items() row-by-row, the same
         // construct confirmed working for the Tasks widget's checkbox
