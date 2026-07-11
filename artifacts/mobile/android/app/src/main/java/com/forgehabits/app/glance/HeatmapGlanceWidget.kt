@@ -116,6 +116,14 @@ private fun HeatmapContent(
 
         Spacer(GlanceModifier.size(6.dp))
 
+        Text(
+            text = "DBG availH=${"%.1f".format(availableHeight)} " +
+                "provCell=${"%.1f".format(provisionalCellSize)} gap=${gap} " +
+                "finalCellH=${"%.1f".format(cellFromHeight)} finalCell=${"%.1f".format(cellSize)} " +
+                "needed=${"%.1f".format(cellSize * 7 + gap * 6)}",
+            style = TextStyle(color = GlanceColors.ACCENT)
+        )
+
         Box(
             modifier = GlanceModifier.fillMaxSize(),
             contentAlignment = Alignment.Center
