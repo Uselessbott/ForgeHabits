@@ -65,7 +65,7 @@ private fun HeatmapContent(streak: Int, heatmap: List<WidgetHeatmapDay>) {
     val availableHeight = (size.height.value - paddingPx * 2 - headerHeight).coerceAtLeast(30f)
     val cellFromWidth = (availableWidth - gap * (cols - 1)) / cols
     val cellFromHeight = (availableHeight - gap * 6) / 7
-    val cellSize = 8f // TEMP: isolate whether container itself clips regardless of math
+    val cellSize = minOf(cellFromWidth, cellFromHeight).coerceAtLeast(4f)
 
     Column(
         modifier = GlanceModifier
@@ -78,8 +78,7 @@ private fun HeatmapContent(streak: Int, heatmap: List<WidgetHeatmapDay>) {
             text = "$streak day streak",
             style = TextStyle(color = GlanceColors.TEXT, fontWeight = FontWeight.Bold)
         )
-        Box(modifier = GlanceModifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Row {
+        Row {
                 weeks.forEachIndexed { wi, week ->
                     Column(
                         modifier = if (wi < weeks.size - 1)
@@ -109,4 +108,3 @@ private fun HeatmapContent(streak: Int, heatmap: List<WidgetHeatmapDay>) {
             }
         }
     }
-}
