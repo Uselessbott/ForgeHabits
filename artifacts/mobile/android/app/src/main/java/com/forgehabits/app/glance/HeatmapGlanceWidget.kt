@@ -65,25 +65,37 @@ private fun HeatmapContent(
         (size.width.value - paddingPx * 2).coerceAtLeast(40f)
 
     val availableHeight =
-        (size.height.value - paddingPx * 2 - headerHeight)
+        (size.height.value - paddingPx * 2 - headerHeight - 4f) // small safety margin
             .coerceAtLeast(30f)
 
     val provisionalGap = 3f
 
-    val cellFromWidth =
+    val provisionalCellFromWidth =
         (availableWidth - provisionalGap * (cols - 1)) / cols
 
-    val cellFromHeight =
+    val provisionalCellFromHeight =
         (availableHeight - provisionalGap * 6) / 7
+
+    val provisionalCellSize =
+        minOf(provisionalCellFromWidth, provisionalCellFromHeight).coerceAtLeast(4f)
+
+    val gap = when {
+        provisionalCellSize >= 14f -> 4f
+        provisionalCellSize >= 9f -> 3f
+        else -> 2f
+    }
+
+    // Second pass: recompute cell size using the FINAL gap, since a larger
+    // final gap than the provisional guess would otherwise silently blow
+    // the height/width budget and clip rows/columns.
+    val cellFromWidth =
+        (availableWidth - gap * (cols - 1)) / cols
+
+    val cellFromHeight =
+        (availableHeight - gap * 6) / 7
 
     val cellSize =
         minOf(cellFromWidth, cellFromHeight).coerceAtLeast(4f)
-
-    val gap = when {
-        cellSize >= 14f -> 4f
-        cellSize >= 9f -> 3f
-        else -> 2f
-    }
 
     Column(
         modifier = GlanceModifier
