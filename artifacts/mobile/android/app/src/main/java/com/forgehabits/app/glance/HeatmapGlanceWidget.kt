@@ -65,7 +65,7 @@ private fun HeatmapContent(
         (size.width.value - paddingPx * 2).coerceAtLeast(40f)
 
     val availableHeight =
-        (size.height.value - paddingPx * 2 - headerHeight - 4f) // small safety margin
+        (size.height.value - paddingPx * 2 - headerHeight - 10f) // safety margin for RemoteViews rounding
             .coerceAtLeast(30f)
 
     val provisionalGap = 3f
@@ -115,14 +115,6 @@ private fun HeatmapContent(
         )
 
         Spacer(GlanceModifier.size(6.dp))
-
-        Text(
-            text = "DBG availH=${"%.1f".format(availableHeight)} " +
-                "provCell=${"%.1f".format(provisionalCellSize)} gap=${gap} " +
-                "finalCellH=${"%.1f".format(cellFromHeight)} finalCell=${"%.1f".format(cellSize)} " +
-                "needed=${"%.1f".format(cellSize * 7 + gap * 6)}",
-            style = TextStyle(color = GlanceColors.ACCENT)
-        )
 
         Box(
             modifier = GlanceModifier.fillMaxSize(),
