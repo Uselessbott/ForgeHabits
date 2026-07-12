@@ -14,11 +14,15 @@ import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.appwidget.cornerRadius
-import androidx.glance.appwidget.lazy.LazyColumn
-import androidx.glance.appwidget.lazy.items
 import androidx.glance.appwidget.provideContent
 import androidx.glance.background
-import androidx.glance.layout.*
+import androidx.glance.layout.Box
+import androidx.glance.layout.Column
+import androidx.glance.layout.Row
+import androidx.glance.layout.Spacer
+import androidx.glance.layout.fillMaxSize
+import androidx.glance.layout.padding
+import androidx.glance.layout.size
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
@@ -43,7 +47,6 @@ class HeatmapGlanceWidget : GlanceAppWidget() {
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val snapshot = WidgetSnapshotRepository.read(context)
-
         provideContent {
             GlanceTheme {
                 HeatmapContent(
@@ -56,10 +59,7 @@ class HeatmapGlanceWidget : GlanceAppWidget() {
 }
 
 @Composable
-private fun HeatmapContent(
-    streak: Int,
-    heatmap: List<WidgetHeatmapDay>
-) {
+private fun HeatmapContent(streak: Int, heatmap: List<WidgetHeatmapDay>) {
     val context = LocalContext.current
     val size = LocalSize.current
     val openAppIntent = Intent(context, MainActivity::class.java).apply {
@@ -73,101 +73,54 @@ private fun HeatmapContent(
     val displayHeatmap = heatmap.takeLast(HEATMAP_DISPLAY_DAYS)
     val weeks = displayHeatmap.chunked(HEATMAP_ROWS)
     val cols = weeks.size.coerceAtLeast(1)
+    val paddingPx = 12f
+    val headerHeight = 34f
+    val gap = 3f
 
-    val paddingPx = when {
-        size.width.value < 150f -> 6f
-        size.width.value < 220f -> 8f
-        else -> 12f
-    }
-
-    val headerHeight = 34f  // streak text + 6dp spacer, with safety margin
-
-    val availableWidth =
-        (size.width.value - paddingPx * 2 - 10f) // safety margin for RemoteViews rounding
-            .coerceAtLeast(40f)
-
-    val availableHeight =
-        (size.height.value - paddingPx * 2 - headerHeight - 10f) // safety margin for RemoteViews rounding
-            .coerceAtLeast(30f)
-
-    val provisionalGap = 3f
-
-    val provisionalCellFromWidth =
-        (availableWidth - provisionalGap * (cols - 1)) / cols
-
-    val provisionalCellFromHeight =
-        (availableHeight - provisionalGap * (HEATMAP_ROWS - 1)) / HEATMAP_ROWS
-
-    val provisionalCellSize =
-        minOf(provisionalCellFromWidth, provisionalCellFromHeight).coerceAtLeast(4f)
-
-    val gap = when {
-        provisionalCellSize >= 14f -> 4f
-        provisionalCellSize >= 9f -> 3f
-        else -> 2f
-    }
-
-    // Second pass: recompute cell size using the FINAL gap, since a larger
-    // final gap than the provisional guess would otherwise silently blow
-    // the height/width budget and clip rows/columns.
-    val cellFromWidth =
-        (availableWidth - gap * (cols - 1)) / cols
-
-    val cellFromHeight =
-        (availableHeight - gap * (HEATMAP_ROWS - 1)) / HEATMAP_ROWS
-
-    val cellSize =
-        minOf(cellFromWidth, cellFromHeight).coerceAtLeast(4f)
+    // Driven by LocalSize.current under SizeMode.Exact - real, continuous
+    // responsive sizing.
+    val availableWidth = (size.width.value - paddingPx * 2).coerceAtLeast(40f)
+    val availableHeight = (size.height.value - paddingPx * 2 - headerHeight).coerceAtLeast(30f)
+    val cellFromWidth = (availableWidth - gap * (cols - 1)) / cols
+    val cellFromHeight = (availableHeight - gap * (HEATMAP_ROWS - 1)) / HEATMAP_ROWS
+    val cellSize = minOf(cellFromWidth, cellFromHeight).coerceAtLeast(4f)
 
     Column(
         modifier = GlanceModifier
             .fillMaxSize()
             .background(GlanceColors.BG)
             .padding(paddingPx.dp)
-            .clickable(actionStartActivity(openAppIntent)),
-        horizontalAlignment = Alignment.Horizontal.CenterHorizontally
+            .clickable(actionStartActivity(openAppIntent))
     ) {
-
         Text(
             text = "$streak day streak",
-            style = TextStyle(
-                color = GlanceColors.TEXT,
-                fontWeight = FontWeight.Bold
-            )
+            style = TextStyle(color = GlanceColors.TEXT, fontWeight = FontWeight.Bold)
         )
-
-        Spacer(GlanceModifier.size(6.dp))
-
-        // Grid is built with LazyColumn/items() row-by-row, the same
-        // construct confirmed working for the Tasks widget's checkbox
-        // background. A plain forEach-built Row/Column grid does NOT
-        // reliably render per-cell background colors in this Glance
-        // version - LazyColumn's item-based rendering does.
-        LazyColumn(modifier = GlanceModifier.fillMaxWidth()) {
-            items(HEATMAP_ROWS, itemId = { it.toLong() }) { rowIndex ->
-                Row(modifier = GlanceModifier.padding(bottom = gap.dp)) {
-                    weeks.forEachIndexed { wi, week ->
-                        val day = week.getOrNull(rowIndex)
-                        if (day != null) {
-                            val cellColor = when {
-                                !day.hasData -> GlanceColors.TRACK
-                                day.pct <= 0.0 -> GlanceColors.TRACK
-                                day.pct < 0.25 -> GlanceColors.ACCENT_DIM
-                                day.pct < 0.50 -> GlanceColors.ACCENT_MID
-                                day.pct < 1.0 -> GlanceColors.ACCENT
-                                else -> GlanceColors.ACCENT_STRONG
-                            }
-
-                            Box(
-                                modifier = GlanceModifier
-                                    .size(cellSize.dp)
-                                    .background(cellColor)
-                                    .cornerRadius((cellSize * 0.2f).dp)
-                            ) {}
-
-                            if (wi < weeks.size - 1) {
-                                Spacer(modifier = GlanceModifier.size(gap.dp))
-                            }
+        Row {
+            weeks.forEachIndexed { wi, week ->
+                Column(
+                    modifier = if (wi < weeks.size - 1)
+                        GlanceModifier.padding(end = gap.dp)
+                    else
+                        GlanceModifier
+                ) {
+                    week.forEachIndexed { index, day ->
+                        val cellColor = when {
+                            !day.hasData -> GlanceColors.TRACK
+                            day.pct <= 0.0 -> GlanceColors.TRACK
+                            day.pct < 0.25 -> GlanceColors.ACCENT_DIM
+                            day.pct < 0.50 -> GlanceColors.ACCENT_MID
+                            day.pct < 1.0 -> GlanceColors.ACCENT
+                            else -> GlanceColors.ACCENT_STRONG
+                        }
+                        Box(
+                            modifier = GlanceModifier
+                                .size(cellSize.dp)
+                                .background(cellColor)
+                                .cornerRadius((cellSize * 0.2f).dp)
+                        ) {}
+                        if (index != week.lastIndex) {
+                            Spacer(modifier = GlanceModifier.size(gap.dp))
                         }
                     }
                 }
