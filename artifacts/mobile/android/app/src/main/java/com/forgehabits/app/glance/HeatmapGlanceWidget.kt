@@ -70,36 +70,20 @@ private fun HeatmapContent(streak: Int, heatmap: List<WidgetHeatmapDay>) {
                 Intent.FLAG_ACTIVITY_CLEAR_TOP
     }
 
+    val displayHeatmap = heatmap.takeLast(HEATMAP_DISPLAY_DAYS)
+    val weeks = displayHeatmap.chunked(HEATMAP_ROWS)
+    val cols = weeks.size.coerceAtLeast(1)
     val paddingPx = 12f
     val headerHeight = 24f
     val gap = 3f
 
-    val availableWidth =
-        (size.width.value - paddingPx * 2).coerceAtLeast(40f)
-
-    val availableHeight =
-        (size.height.value - paddingPx * 2 - headerHeight).coerceAtLeast(30f)
-
-    // Preferred cell size. Wider widgets show more history instead of
-    // stretching existing columns.
-    val preferredCell = 12f
-
-    val cols = ((availableWidth + gap) / (preferredCell + gap))
-        .toInt()
-        .coerceAtLeast(10)
-
-    val displayDays = cols * HEATMAP_ROWS
-
-    val displayHeatmap = heatmap.takeLast(displayDays)
-    val weeks = displayHeatmap.chunked(HEATMAP_ROWS)
-
-    val cellFromWidth =
-        (availableWidth - gap * (cols - 1)) / cols
-
-    val cellFromHeight =
-        (availableHeight - gap * (HEATMAP_ROWS - 1)) / HEATMAP_ROWS
-
-    val cellSize = minOf(cellFromWidth, cellFromHeight)
+    // Driven by LocalSize.current under SizeMode.Exact - real, continuous
+    // responsive sizing.
+    val availableWidth = (size.width.value - paddingPx * 2).coerceAtLeast(40f)
+    val availableHeight = (size.height.value - paddingPx * 2 - headerHeight - 8f).coerceAtLeast(30f)
+    val cellFromWidth = (availableWidth - gap * (cols - 1)) / cols
+    val cellFromHeight = (availableHeight - gap * (HEATMAP_ROWS - 1)) / HEATMAP_ROWS
+    val cellSize = minOf(cellFromWidth, cellFromHeight).coerceAtLeast(4f)
 
     Column(
         modifier = GlanceModifier
