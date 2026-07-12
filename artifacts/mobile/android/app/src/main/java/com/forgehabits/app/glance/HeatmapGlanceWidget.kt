@@ -62,7 +62,13 @@ class HeatmapGlanceWidget : GlanceAppWidget() {
 private fun HeatmapContent(streak: Int, heatmap: List<WidgetHeatmapDay>) {
     val context = LocalContext.current
     val size = LocalSize.current
-    val openAppIntent = Intent(context, MainActivity::class.java)
+    val openAppIntent = Intent(context, MainActivity::class.java).apply {
+        action = Intent.ACTION_MAIN
+        addCategory(Intent.CATEGORY_LAUNCHER)
+        flags = Intent.FLAG_ACTIVITY_NEW_TASK or
+                Intent.FLAG_ACTIVITY_SINGLE_TOP or
+                Intent.FLAG_ACTIVITY_CLEAR_TOP
+    }
 
     val displayHeatmap = heatmap.takeLast(HEATMAP_DISPLAY_DAYS)
     val weeks = displayHeatmap.chunked(HEATMAP_ROWS)
