@@ -11,9 +11,7 @@ import {
 } from '@/utils/scheduling';
 import { getCurrentStreak, getLongestStreak } from '@/utils/streaks';
 import { runDailyReset } from '@/utils/dailyReset';
-import { requestWidgetUpdate } from 'react-native-android-widget';
 import * as Notifications from 'expo-notifications';
-import { ForgeHabitsWidget } from '@/widgets/Widget';
 import {
   startMonkModeSession,
   syncMonkModeSession,
@@ -275,11 +273,9 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
       });
     }
 
-    // Write a lightweight snapshot to native DataStore for future Glance
-    // widgets. This is purely additive - it does not affect or replace the
-    // existing react-native-android-widget sync below. Fire-and-forget with
-    // a caught rejection: a failed snapshot write should never break the
-    // React Native app or the widgets that already work.
+    // Write the snapshot to native DataStore, consumed by the Glance
+    // widgets. Fire-and-forget with a caught rejection: a failed snapshot
+    // write should never break the React Native app.
     try {
       const snapshot = {
         version: 1,
@@ -297,33 +293,6 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
           (e: unknown) => console.warn('widget snapshot write failed:', e)
         );
       }
-    } catch (e) {
-      console.warn('widget snapshot serialization failed:', e);
-    }
-
-    const widgetConfigs = [
-      { name: 'ForgeHabitsProgress', type: 'progress' },
-      { name: 'ForgeHabitsTasks', type: 'tasks' },
-      { name: 'ForgeHabitsCombined', type: 'combined' },
-      { name: 'ForgeHabitsHeatmap', type: 'heatmap' },
-    ];
-
-    widgetConfigs.forEach(({ name, type }) => {
-      requestWidgetUpdate({
-        widgetName: name,
-        renderWidget: () => (
-          <ForgeHabitsWidget
-            completed={completed}
-            total={total}
-            remaining={remaining}
-            streak={streak}
-            habits={habitList}
-            widgetType={type}
-            history={type === 'heatmap' ? history : undefined}
-          />
-        ),
-      });
-    });
     } catch (e) {
       console.warn('refreshWidget failed:', e);
     }

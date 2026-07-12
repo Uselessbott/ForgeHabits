@@ -44,53 +44,6 @@
           "color": "#080808",
           "defaultChannel": "forgehabits_default"
         }
-      ],
-      [
-        "react-native-android-widget",
-        {
-          "widgets": [
-            {
-              "name": "ForgeHabitsProgress",
-              "label": "Progress",
-              "minWidth": "110dp",
-              "minHeight": "110dp",
-              "resizeMode": "horizontal|vertical",
-              "description": "Circular progress ring \u2014 tap to complete next habit",
-              "previewImage": "./assets/images/widget_preview_progress.png",
-              "updatePeriodMillis": 1800000
-            },
-            {
-              "name": "ForgeHabitsTasks",
-              "label": "Tasks",
-              "minWidth": "180dp",
-              "minHeight": "180dp",
-              "resizeMode": "horizontal|vertical",
-              "description": "Today's task list \u2014 tap to complete",
-              "previewImage": "./assets/images/widget_preview_tasks.png",
-              "updatePeriodMillis": 1800000
-            },
-            {
-              "name": "ForgeHabitsCombined",
-              "label": "ForgeHabits",
-              "minWidth": "250dp",
-              "minHeight": "180dp",
-              "resizeMode": "horizontal|vertical",
-              "description": "Progress + tasks",
-              "previewImage": "./assets/images/widget_preview_combined.png",
-              "updatePeriodMillis": 1800000
-            },
-            {
-              "name": "ForgeHabitsHeatmap",
-              "label": "Heatmap",
-              "minWidth": "250dp",
-              "minHeight": "110dp",
-              "resizeMode": "horizontal|vertical",
-              "description": "GitHub-style completion history",
-              "previewImage": "./assets/images/widget_preview_heatmap.png",
-              "updatePeriodMillis": 1800000
-            }
-          ]
-        }
       ]
     ],
     "extra": {
