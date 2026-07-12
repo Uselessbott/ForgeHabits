@@ -301,6 +301,8 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
     console.warn('refreshWidget failed:', e);
   }
 
+  }
+
   function setHabitsAndSave(h: Habit[]) {
     setHabits(h);
     save(KEYS.HABITS, h);
