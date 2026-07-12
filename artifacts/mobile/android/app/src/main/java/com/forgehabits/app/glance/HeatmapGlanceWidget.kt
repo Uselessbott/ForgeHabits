@@ -80,7 +80,7 @@ private fun HeatmapContent(streak: Int, heatmap: List<WidgetHeatmapDay>) {
     // Driven by LocalSize.current under SizeMode.Exact - real, continuous
     // responsive sizing.
     val availableWidth = (size.width.value - paddingPx * 2).coerceAtLeast(40f)
-    val availableHeight = (size.height.value - paddingPx * 2 - headerHeight - 8f).coerceAtLeast(30f)
+    val availableHeight = (size.height.value - paddingPx * 2 - headerHeight - 18f).coerceAtLeast(30f)
     val cellFromWidth = (availableWidth - gap * (cols - 1)) / cols
     val cellFromHeight = (availableHeight - gap * (HEATMAP_ROWS - 1)) / HEATMAP_ROWS
     val cellSize = minOf(cellFromWidth, cellFromHeight).coerceAtLeast(4f)
