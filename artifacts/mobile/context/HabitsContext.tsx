@@ -294,8 +294,11 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
         );
       }
     } catch (e) {
-      console.warn('refreshWidget failed:', e);
+      console.warn('widget snapshot serialization failed:', e);
     }
+
+  } catch (e) {
+    console.warn('refreshWidget failed:', e);
   }
 
   function setHabitsAndSave(h: Habit[]) {
