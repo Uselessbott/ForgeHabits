@@ -83,7 +83,7 @@ private fun HeatmapContent(streak: Int, heatmap: List<WidgetHeatmapDay>) {
     val availableHeight = (size.height.value - paddingPx * 2 - headerHeight).coerceAtLeast(30f)
     val cellFromWidth = (availableWidth - gap * (cols - 1)) / cols
     val cellFromHeight = (availableHeight - gap * (HEATMAP_ROWS - 1)) / HEATMAP_ROWS
-    val cellSize = minOf(cellFromWidth, cellFromHeight).coerceAtLeast(4f)
+    val cellSize = minOf(cellFromWidth, cellFromHeight).coerceIn(4f, 20f)
 
     Column(
         modifier = GlanceModifier
