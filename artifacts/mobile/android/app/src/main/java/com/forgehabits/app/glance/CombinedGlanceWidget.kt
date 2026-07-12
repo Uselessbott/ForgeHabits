@@ -60,13 +60,7 @@ class CombinedGlanceWidget : GlanceAppWidget() {
 @Composable
 private fun CombinedContent(completed: Int, total: Int, streak: Int, habits: List<WidgetHabit>) {
     val context = LocalContext.current
-    val openAppIntent = Intent(context, MainActivity::class.java).apply {
-        action = Intent.ACTION_MAIN
-        addCategory(Intent.CATEGORY_LAUNCHER)
-        flags = Intent.FLAG_ACTIVITY_NEW_TASK or
-                Intent.FLAG_ACTIVITY_SINGLE_TOP or
-                Intent.FLAG_ACTIVITY_CLEAR_TOP
-    }
+    val openAppIntent = Intent(context, MainActivity::class.java)
     val pct = if (total > 0) completed.toFloat() / total.toFloat() else 0f
     val size = LocalSize.current
     val ringSizeDp = (size.height.value * 0.35f).coerceIn(36f, 72f)

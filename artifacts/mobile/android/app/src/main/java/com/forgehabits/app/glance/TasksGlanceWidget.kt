@@ -55,13 +55,7 @@ class TasksGlanceWidget : GlanceAppWidget() {
 @Composable
 private fun TasksContent(completed: Int, total: Int, habits: List<WidgetHabit>) {
     val context = LocalContext.current
-    val openAppIntent = Intent(context, MainActivity::class.java).apply {
-        action = Intent.ACTION_MAIN
-        addCategory(Intent.CATEGORY_LAUNCHER)
-        flags = Intent.FLAG_ACTIVITY_NEW_TASK or
-                Intent.FLAG_ACTIVITY_SINGLE_TOP or
-                Intent.FLAG_ACTIVITY_CLEAR_TOP
-    }
+    val openAppIntent = Intent(context, MainActivity::class.java)
 
     Column(
         modifier = GlanceModifier

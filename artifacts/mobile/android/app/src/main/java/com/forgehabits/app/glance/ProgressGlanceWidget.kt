@@ -60,13 +60,7 @@ private fun ProgressContent(completed: Int, total: Int, streak: Int) {
         ProgressRingRenderer.render(ringSizePx, pct, GlanceColors.ACCENT_ARGB, GlanceColors.TRACK_ARGB)
     }
 
-    val openAppIntent = Intent(context, MainActivity::class.java).apply {
-        action = Intent.ACTION_MAIN
-        addCategory(Intent.CATEGORY_LAUNCHER)
-        flags = Intent.FLAG_ACTIVITY_NEW_TASK or
-                Intent.FLAG_ACTIVITY_SINGLE_TOP or
-                Intent.FLAG_ACTIVITY_CLEAR_TOP
-    }
+    val openAppIntent = Intent(context, MainActivity::class.java)
 
     Box(
         modifier = GlanceModifier
