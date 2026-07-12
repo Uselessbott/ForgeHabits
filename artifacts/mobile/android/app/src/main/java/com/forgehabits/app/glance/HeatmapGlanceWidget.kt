@@ -89,7 +89,7 @@ private fun HeatmapContent(streak: Int, heatmap: List<WidgetHeatmapDay>) {
         modifier = GlanceModifier
             .fillMaxSize()
             .background(GlanceColors.BG)
-            .padding(paddingPx.dp)
+            .padding(start = paddingPx.dp, end = paddingPx.dp, top = 6.dp, bottom = paddingPx.dp)
             .clickable(actionStartActivity(openAppIntent))
     ) {
         Text(
