@@ -74,13 +74,13 @@ private fun HeatmapContent(streak: Int, heatmap: List<WidgetHeatmapDay>) {
     val weeks = displayHeatmap.chunked(HEATMAP_ROWS)
     val cols = weeks.size.coerceAtLeast(1)
     val paddingPx = 12f
-    val headerHeight = 24f
+    val headerHeight = 34f
     val gap = 3f
 
     // Driven by LocalSize.current under SizeMode.Exact - real, continuous
     // responsive sizing.
     val availableWidth = (size.width.value - paddingPx * 2).coerceAtLeast(40f)
-    val availableHeight = (size.height.value - paddingPx * 2 - headerHeight - 18f).coerceAtLeast(30f)
+    val availableHeight = (size.height.value - paddingPx * 2 - headerHeight).coerceAtLeast(30f)
     val cellFromWidth = (availableWidth - gap * (cols - 1)) / cols
     val cellFromHeight = (availableHeight - gap * (HEATMAP_ROWS - 1)) / HEATMAP_ROWS
     val cellSize = minOf(cellFromWidth, cellFromHeight).coerceAtLeast(4f)
@@ -89,7 +89,7 @@ private fun HeatmapContent(streak: Int, heatmap: List<WidgetHeatmapDay>) {
         modifier = GlanceModifier
             .fillMaxSize()
             .background(GlanceColors.BG)
-            .padding(start = paddingPx.dp, end = paddingPx.dp, top = 6.dp, bottom = paddingPx.dp)
+            .padding(paddingPx.dp)
             .clickable(actionStartActivity(openAppIntent))
     ) {
         Text(
