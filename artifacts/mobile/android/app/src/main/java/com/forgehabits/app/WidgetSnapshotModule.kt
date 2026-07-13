@@ -12,7 +12,6 @@ import com.forgehabits.app.glance.TasksGlanceWidget
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.ensureActive
@@ -32,7 +31,6 @@ class WidgetSnapshotModule(reactContext: ReactApplicationContext) :
     // call comes in while an older one is still in flight, the older one is
     // cancelled so it can never call updateAll() with stale data after the
     // newer one has already landed.
-    private var pendingWrite: Job? = null
 
     override fun getName(): String = "WidgetSnapshotModule"
 
@@ -42,8 +40,7 @@ class WidgetSnapshotModule(reactContext: ReactApplicationContext) :
         // ever be allowed to reach DataStore/updateAll(). This prevents
         // out-of-order completions from clobbering fresher data with stale
         // data (the "shows 2 completed instead of 5" bug).
-        pendingWrite?.cancel()
-        pendingWrite = moduleScope.launch {
+        moduleScope.launch {
             try {
                 WidgetSnapshotRepository.write(reactApplicationContext, snapshotJson)
                 ensureActive()
