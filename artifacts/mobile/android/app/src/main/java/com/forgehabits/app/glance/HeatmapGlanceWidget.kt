@@ -80,7 +80,7 @@ private fun HeatmapContent(streak: Int, heatmap: List<WidgetHeatmapDay>) {
         Spacer(GlanceModifier.size(6.dp))
 
         Box(
-            modifier = GlanceModifier.fillMaxWidth().defaultWeight(),
+            modifier = GlanceModifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
             Row {
