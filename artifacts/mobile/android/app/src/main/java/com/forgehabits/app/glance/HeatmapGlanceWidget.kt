@@ -84,7 +84,7 @@ private fun HeatmapContent(streak: Int, heatmap: List<WidgetHeatmapDay>) {
             .clickable(actionStartActivity(openAppIntent))
     ) {
         Text(
-            text = "$streak day streak (${size.width.value.toInt()}×${size.height.value.toInt()})",
+            text = "$streak day streak (${size.width.value.toInt()}×${size.height.value.toInt()}) days=${heatmap.size}",
             style = TextStyle(color = GlanceColors.TEXT, fontWeight = FontWeight.Bold)
         )
 
