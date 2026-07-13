@@ -26,7 +26,7 @@ import com.forgehabits.app.WidgetSnapshotRepository
 
 private const val CELL_SIZE_DP = 18f
 private const val CELL_GAP_DP = 3f
-private const val HEATMAP_ROWS = 5
+private const val HEATMAP_ROWS = 7
 
 class HeatmapGlanceWidget : GlanceAppWidget() {
     override val sizeMode = SizeMode.Exact
@@ -50,20 +50,31 @@ private fun HeatmapContent(streak: Int, heatmap: List<WidgetHeatmapDay>) {
     val size = LocalSize.current
     val openAppIntent = Intent(context, MainActivity::class.java)
 
-    val paddingPx = when {
-        size.width.value < 150f -> 6f
-        size.width.value < 220f -> 8f
-        else -> 12f
-    }
+    val paddingPx = 12f
+    val headerHeight = 24f
+    val gap = CELL_GAP_DP
 
-    val availableWidth = (size.width.value - paddingPx * 2).coerceAtLeast(40f)
+    val availableWidth =
+        (size.width.value - paddingPx * 2).coerceAtLeast(40f)
 
-    val cellPlusGap = CELL_SIZE_DP + CELL_GAP_DP
-    val cols = (((availableWidth + CELL_GAP_DP) / cellPlusGap).toInt()).coerceAtLeast(1)
+    val availableHeight =
+        (size.height.value - paddingPx * 2 - headerHeight)
+            .coerceAtLeast(30f)
 
-    val daysToShow = (cols * HEATMAP_ROWS).coerceAtMost(heatmap.size)
-    val displayHeatmap = heatmap.takeLast(daysToShow)
-    val weeks = displayHeatmap.chunked(HEATMAP_ROWS)
+    val cols = ((heatmap.size + HEATMAP_ROWS - 1) / HEATMAP_ROWS)
+        .coerceAtLeast(1)
+
+    val cellFromWidth =
+        (availableWidth - gap * (cols - 1)) / cols
+
+    val cellFromHeight =
+        (availableHeight - gap * (HEATMAP_ROWS - 1)) / HEATMAP_ROWS
+
+    val cellSize =
+        minOf(cellFromWidth, cellFromHeight)
+            .coerceAtLeast(4f)
+
+    val weeks = heatmap.chunked(HEATMAP_ROWS)
 
     Column(
         modifier = GlanceModifier
@@ -73,7 +84,7 @@ private fun HeatmapContent(streak: Int, heatmap: List<WidgetHeatmapDay>) {
             .clickable(actionStartActivity(openAppIntent))
     ) {
         Text(
-            text = "$streak day streak",
+            text = "$streak day streak (${size.width.value.toInt()}×${size.height.value.toInt()})",
             style = TextStyle(color = GlanceColors.TEXT, fontWeight = FontWeight.Bold)
         )
 
@@ -102,9 +113,9 @@ private fun HeatmapContent(streak: Int, heatmap: List<WidgetHeatmapDay>) {
                             }
                             Box(
                                 modifier = GlanceModifier
-                                    .size(CELL_SIZE_DP.dp)
+                                    .size(cellSize.dp)
                                     .background(cellColor)
-                                    .cornerRadius((CELL_SIZE_DP * 0.2f).dp)
+                                    .cornerRadius((cellSize * 0.2f).dp)
                             ) {}
                             if (index != week.lastIndex) {
                                 Spacer(modifier = GlanceModifier.size(CELL_GAP_DP.dp))
