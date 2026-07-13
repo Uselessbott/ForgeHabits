@@ -66,7 +66,7 @@ private fun ProgressContent(completed: Int, total: Int, streak: Int) {
         modifier = GlanceModifier
             .fillMaxSize()
             .background(GlanceColors.BG)
-            .padding(8.dp)
+            .padding(GlanceDimensions.WidgetPadding)
             .clickable(actionStartActivity(openAppIntent)),
         contentAlignment = Alignment.Center
     ) {
@@ -79,12 +79,12 @@ private fun ProgressContent(completed: Int, total: Int, streak: Int) {
                 )
                 Text(
                     text = "${(pct * 100).toInt()}%",
-                    style = TextStyle(color = GlanceColors.TEXT, fontWeight = FontWeight.Bold)
+                    style = GlanceTypography.Title
                 )
             }
-            Text(text = "$completed/$total habits", style = TextStyle(color = GlanceColors.SUBTEXT))
+            Text(text = "$completed of $total", style = GlanceTypography.Secondary)
             if (streak > 0) {
-                Text(text = "$streak day streak", style = TextStyle(color = GlanceColors.ACCENT))
+                Text(text = "🔥 $streak day streak", style = GlanceTypography.Accent)
             }
         }
     }

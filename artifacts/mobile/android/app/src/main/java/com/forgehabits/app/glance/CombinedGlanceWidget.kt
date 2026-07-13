@@ -69,11 +69,15 @@ private fun CombinedContent(completed: Int, total: Int, streak: Int, habits: Lis
         ProgressRingRenderer.render(ringSizePx, pct, GlanceColors.ACCENT_ARGB, GlanceColors.TRACK_ARGB)
     }
 
+    val remainingHabits = habits.filter { !it.completed }
+    val visibleHabits = remainingHabits.take(4)
+    val hiddenHabitCount = (remainingHabits.size - visibleHabits.size).coerceAtLeast(0)
+
     Column(
         modifier = GlanceModifier
             .fillMaxSize()
             .background(GlanceColors.BG)
-            .padding(12.dp)
+            .padding(GlanceDimensions.WidgetPadding)
     ) {
         Row(
             modifier = GlanceModifier
@@ -89,36 +93,58 @@ private fun CombinedContent(completed: Int, total: Int, streak: Int, habits: Lis
                 )
                 Text(
                     text = "${(pct * 100).toInt()}%",
-                    style = TextStyle(color = GlanceColors.TEXT, fontWeight = FontWeight.Bold)
+                    style = GlanceTypography.Title
                 )
             }
             Spacer(GlanceModifier.width(10.dp))
             Column {
-                Text(text = "$completed/$total done", style = TextStyle(color = GlanceColors.TEXT))
-                Text(text = "$streak day streak", style = TextStyle(color = GlanceColors.ACCENT))
+                Text(text = "$completed of $total", style = GlanceTypography.Secondary)
+                Text(text = "🔥 $streak day streak", style = GlanceTypography.Accent)
             }
         }
-        Spacer(GlanceModifier.height(8.dp))
-        LazyColumn(modifier = GlanceModifier.fillMaxWidth()) {
-            items(habits, itemId = { it.id.hashCode().toLong() }) { habit ->
-                Row(
-                    modifier = GlanceModifier
-                        .fillMaxWidth()
-                        .padding(vertical = 3.dp)
-                        .clickable(actionStartActivity(openAppIntent)),
-                    verticalAlignment = Alignment.Vertical.CenterVertically
-                ) {
-                    Box(
+        Spacer(GlanceModifier.height(GlanceDimensions.SectionSpacing))
+        if (remainingHabits.isEmpty()) {
+            Box(
+                modifier = GlanceModifier
+                    .fillMaxWidth()
+                    .padding(vertical = 12.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "✓ All habits completed",
+                    style = GlanceTypography.Accent
+                )
+            }
+        } else {
+            LazyColumn(modifier = GlanceModifier.fillMaxWidth()) {
+                items(visibleHabits, itemId = { it.id.hashCode().toLong() }) { habit ->
+                    Row(
                         modifier = GlanceModifier
-                            .size(14.dp)
-                            .background(if (habit.completed) GlanceColors.ACCENT else GlanceColors.BG)
-                            .cornerRadius(3.dp)
-                    ) {}
-                    Spacer(GlanceModifier.width(6.dp))
-                    Text(
-                        text = habit.name,
-                        style = TextStyle(color = if (habit.completed) GlanceColors.SUBTEXT else GlanceColors.TEXT)
-                    )
+                            .fillMaxWidth()
+                            .padding(vertical = 3.dp)
+                            .clickable(actionStartActivity(openAppIntent)),
+                        verticalAlignment = Alignment.Vertical.CenterVertically
+                    ) {
+                        Box(
+                            modifier = GlanceModifier
+                                .size(GlanceDimensions.CheckboxSize)
+                                .background(GlanceColors.TRACK)
+                                .cornerRadius(GlanceDimensions.CornerRadius)
+                        ) {}
+                        Spacer(GlanceModifier.width(6.dp))
+                        Text(
+                            text = habit.name,
+                            style = GlanceTypography.Body
+                        )
+                    }
+                }
+                if (hiddenHabitCount > 0) {
+                    item {
+                        Text(
+                            text = "+$hiddenHabitCount more",
+                            style = GlanceTypography.Secondary
+                        )
+                    }
                 }
             }
         }

@@ -24,9 +24,9 @@ import com.forgehabits.app.MainActivity
 import com.forgehabits.app.WidgetHeatmapDay
 import com.forgehabits.app.WidgetSnapshotRepository
 
-private const val CELL_SIZE_DP = 18f
-private const val CELL_GAP_DP = 3f
-private const val HEATMAP_ROWS = 7
+private const val CELL_SIZE_DP = GlanceDimensions.HeatmapCell
+private const val CELL_GAP_DP = GlanceDimensions.HeatmapGap
+private const val HEATMAP_ROWS = GlanceDimensions.HeatmapRows
 
 class HeatmapGlanceWidget : GlanceAppWidget() {
     override val sizeMode = SizeMode.Exact
@@ -50,7 +50,7 @@ private fun HeatmapContent(streak: Int, heatmap: List<WidgetHeatmapDay>) {
     val size = LocalSize.current
     val openAppIntent = Intent(context, MainActivity::class.java)
 
-    val paddingPx = 12f
+    val paddingPx = GlanceDimensions.WidgetPadding.value
     val headerHeight = 24f
     val gap = CELL_GAP_DP
 
@@ -84,14 +84,14 @@ private fun HeatmapContent(streak: Int, heatmap: List<WidgetHeatmapDay>) {
             .clickable(actionStartActivity(openAppIntent))
     ) {
         Text(
-            text = "$streak day streak (${size.width.value.toInt()}×${size.height.value.toInt()}) days=${heatmap.size}",
-            style = TextStyle(color = GlanceColors.TEXT, fontWeight = FontWeight.Bold)
+            text = "🔥 $streak day streak",
+            style = GlanceTypography.Title
         )
 
-        Spacer(GlanceModifier.size(6.dp))
+        Spacer(GlanceModifier.size(GlanceDimensions.SmallSpacing))
 
         Box(
-            modifier = GlanceModifier.fillMaxSize(),
+            modifier = GlanceModifier.defaultWeight(),
             contentAlignment = Alignment.Center
         ) {
             Row {

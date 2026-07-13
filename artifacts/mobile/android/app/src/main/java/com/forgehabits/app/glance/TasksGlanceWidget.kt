@@ -65,7 +65,7 @@ private fun TasksContent(completed: Int, total: Int, habits: List<WidgetHabit>) 
     ) {
         Text(
             text = "Today ($completed/$total)",
-            style = TextStyle(color = GlanceColors.TEXT, fontWeight = FontWeight.Bold)
+            style = GlanceTypography.Title
         )
         Spacer(GlanceModifier.height(6.dp))
         // LazyColumn = real, native scrolling - shows every habit, no
