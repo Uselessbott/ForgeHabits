@@ -36,7 +36,7 @@ import com.forgehabits.app.WidgetHabit
 import com.forgehabits.app.WidgetSnapshotRepository
 
 class TasksGlanceWidget : GlanceAppWidget() {
-    override val sizeMode = SizeMode.Exact
+    override val sizeMode = SizeMode.Single
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val snapshot = WidgetSnapshotRepository.read(context)

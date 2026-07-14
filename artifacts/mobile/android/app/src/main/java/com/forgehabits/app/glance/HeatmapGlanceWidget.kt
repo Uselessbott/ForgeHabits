@@ -35,7 +35,7 @@ import com.forgehabits.app.WidgetHeatmapDay
 import com.forgehabits.app.WidgetSnapshotRepository
 
 class HeatmapGlanceWidget : GlanceAppWidget() {
-    override val sizeMode = SizeMode.Exact
+    override val sizeMode = SizeMode.Single
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val snapshot = WidgetSnapshotRepository.read(context)
@@ -68,15 +68,6 @@ private fun HeatmapContent(streak: Int, heatmap: List<WidgetHeatmapDay>, snapsho
     val cellFromHeight = (availableHeight - gap * 6) / 7
     val cellSize = 18f
 
-    val lastDay = heatmap.lastOrNull()
-    val lastDayBranch = when {
-        lastDay == null -> "NULL"
-        !lastDay.hasData -> "TRACK"
-        lastDay.pct <= 0.0 -> "ACCENT_DIM"
-        lastDay.pct < 0.5 -> "ACCENT_MID"
-        else -> "ACCENT"
-    }
-
     Column(
         modifier = GlanceModifier
             .fillMaxSize()
@@ -89,8 +80,8 @@ private fun HeatmapContent(streak: Int, heatmap: List<WidgetHeatmapDay>, snapsho
             style = TextStyle(color = GlanceColors.TEXT, fontWeight = FontWeight.Bold)
         )
         Text(
-            text = "DBG today=$snapshotToday last=${lastDay?.date} pct=${lastDay?.pct} branch=$lastDayBranch n=${heatmap.size}",
-            style = TextStyle(color = GlanceColors.ACCENT)
+            text = snapshotToday,
+            style = TextStyle(color = GlanceColors.SUBTEXT)
         )
         // REWRITE: grid is now built with LazyColumn/items(), the same
         // construct confirmed working for the Tasks widget's checkbox

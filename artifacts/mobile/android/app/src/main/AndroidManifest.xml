@@ -50,21 +50,21 @@
     </receiver>
     <receiver android:name=".MonkModeActionReceiver" android:exported="false"/>
 
-    <receiver android:name=".glance.ProgressGlanceWidgetReceiver" android:exported="false" android:label="Progress">
+    <receiver android:name=".glance.ProgressGlanceWidgetReceiver" android:exported="true" android:label="Progress">
       <intent-filter>
         <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
       </intent-filter>
       <meta-data android:name="android.appwidget.provider" android:resource="@xml/progress_glance_widget_info"/>
     </receiver>
 
-    <receiver android:name=".glance.TasksGlanceWidgetReceiver" android:exported="false" android:label="Tasks">
+    <receiver android:name=".glance.TasksGlanceWidgetReceiver" android:exported="true" android:label="Tasks">
       <intent-filter>
         <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
       </intent-filter>
       <meta-data android:name="android.appwidget.provider" android:resource="@xml/tasks_glance_widget_info"/>
     </receiver>
 
-    <receiver android:name=".glance.CombinedGlanceWidgetReceiver" android:exported="false" android:label="ForgeHabits">
+    <receiver android:name=".glance.CombinedGlanceWidgetReceiver" android:exported="true" android:label="ForgeHabits">
       <intent-filter>
         <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
       </intent-filter>
