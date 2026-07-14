@@ -107,10 +107,10 @@ private fun HeatmapContent(streak: Int, heatmap: List<WidgetHeatmapDay>, snapsho
                         val day = week.getOrNull(rowIndex)
                         if (day != null) {
                             val cellColor = when {
-                                !day.hasData -> GlanceColors.DBG_TRACK
-                                day.pct <= 0.0 -> GlanceColors.DBG_ACCENT_DIM
-                                day.pct < 0.5 -> GlanceColors.DBG_ACCENT_MID
-                                else -> GlanceColors.DBG_ACCENT
+                                !day.hasData -> GlanceColors.TRACK
+                                day.pct <= 0.0 -> GlanceColors.ACCENT_DIM
+                                day.pct < 0.5 -> GlanceColors.ACCENT_MID
+                                else -> GlanceColors.ACCENT
                             }
                             Box(
                                 modifier = GlanceModifier
