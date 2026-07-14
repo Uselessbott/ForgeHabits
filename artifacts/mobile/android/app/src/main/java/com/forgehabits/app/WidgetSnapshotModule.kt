@@ -17,6 +17,8 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 // Bridge module exposed to JS as NativeModules.WidgetSnapshotModule.
 // This is the ONLY place JS talks to native widget storage - it has no
@@ -27,6 +29,8 @@ class WidgetSnapshotModule(reactContext: ReactApplicationContext) :
     ReactContextBaseJavaModule(reactContext) {
 
     private val moduleScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+
+    private val writeMutex = Mutex()
 
     // Only the most recent write should ever apply. If a newer writeSnapshot()
     // call comes in while an older one is still in flight, the older one is
@@ -43,21 +47,18 @@ class WidgetSnapshotModule(reactContext: ReactApplicationContext) :
         // data (the "shows 2 completed instead of 5" bug).
         moduleScope.launch {
             try {
-                Log.d("ForgeWidget", "WRITE START")
-                WidgetSnapshotRepository.write(reactApplicationContext, snapshotJson)
-                Log.d("ForgeWidget", "WRITE DONE")
+                writeMutex.withLock {
+                    Log.d("ForgeWidget", "WRITE START")
+                    WidgetSnapshotRepository.write(reactApplicationContext, snapshotJson)
+                    Log.d("ForgeWidget", "WRITE DONE")
 
-                ensureActive()
-
-                Log.d("ForgeWidget", "UPDATE START")
-                ProgressGlanceWidget().updateAll(reactApplicationContext)
-                TasksGlanceWidget().updateAll(reactApplicationContext)
-                CombinedGlanceWidget().updateAll(reactApplicationContext)
-                HeatmapGlanceWidget().updateAll(reactApplicationContext)
-                Log.d("ForgeWidget", "UPDATE DONE")
-                TasksGlanceWidget().updateAll(reactApplicationContext)
-                CombinedGlanceWidget().updateAll(reactApplicationContext)
-                HeatmapGlanceWidget().updateAll(reactApplicationContext)
+                    Log.d("ForgeWidget", "UPDATE START")
+                    ProgressGlanceWidget().updateAll(reactApplicationContext)
+                    TasksGlanceWidget().updateAll(reactApplicationContext)
+                    CombinedGlanceWidget().updateAll(reactApplicationContext)
+                    HeatmapGlanceWidget().updateAll(reactApplicationContext)
+                    Log.d("ForgeWidget", "UPDATE DONE")
+                }
                 promise.resolve(true)
             } catch (e: CancellationException) {
                 // Superseded by a newer write - not an error, just drop it.
