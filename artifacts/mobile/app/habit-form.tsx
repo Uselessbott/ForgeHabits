@@ -40,7 +40,7 @@ export default function HabitFormScreen() {
       Alert.alert('Missing Name', 'Please enter a habit name.');
       return;
     }
-    const data: Omit<Habit, 'id' | 'createdAt' | 'archived'> = {
+    const data: Omit<Habit, 'id' | 'createdAt' | 'archived' | 'sortOrder'> = {
       name: name.trim(),
       emoji: emoji || '✨',
       description: description.trim(),

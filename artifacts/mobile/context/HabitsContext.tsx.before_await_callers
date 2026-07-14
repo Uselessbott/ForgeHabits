@@ -19,14 +19,6 @@ import {
   getMonkModeSessionState,
 } from "@/utils/monkMode";
 
-import {
-  scheduleHabitReminder,
-  cancelHabitReminders,
-  rescheduleAllHabitReminders,
-  scheduleMidnightReset,
-} from '@/utils/notifications';
-
-
 const KEYS = {
   HABITS: '@fg:habits',
   CATEGORIES: '@fg:categories',
@@ -65,11 +57,11 @@ interface HabitsContextType {
   restoreHabit: (id: string) => void;
   createCategory: (data: Omit<Category, 'id' | 'order' | 'collapsed'>) => void;
   updateCategory: (id: string, updates: Partial<Category>) => void;
-  deleteCategory: (id: string) => Promise<void>;
+  deleteCategory: (id: string) => void;
   reorderCategories: (orderedIds: string[]) => void;
   toggleCategoryCollapsed: (id: string) => void;
   markHabit: (habitId: string, date: string) => void;
-  applyStreakFreeze: () => Promise<boolean>;
+  applyStreakFreeze: () => boolean;
   updateSettings: (updates: Partial<AppSettings>) => void;
   resetAllData: () => Promise<void>;
   getHabitsForDate: (date: string) => Habit[];
@@ -92,8 +84,8 @@ interface HabitsContextType {
 
 const HabitsContext = createContext<HabitsContextType | null>(null);
 
-async function save(key: string, data: unknown) {
-  await AsyncStorage.setItem(key, JSON.stringify(data));
+function save(key: string, data: unknown) {
+  AsyncStorage.setItem(key, JSON.stringify(data)).catch(() => {});
 }
 
 
@@ -140,12 +132,6 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
           setFreezes(loadedFreezes);
           if (newLogs.length !== loadedLogs.length) save(KEYS.LOGS, newLogs);
           if (finalSettings !== loadedSettings) save(KEYS.SETTINGS, finalSettings);
-
-          if (finalSettings.notificationsEnabled) {
-            await rescheduleAllHabitReminders(loadedHabits);
-            await scheduleMidnightReset();
-          }
-
           await refreshWidget(loadedHabits, newLogs);
         }
       } catch {
@@ -159,37 +145,23 @@ useEffect(() => {
     const reconcile = async () => {
       try {
         const sessionState = await getMonkModeSessionState();
-        const currentSettings = settings;
         if (!sessionState?.isActive) {
           // Native side may have auto-stopped the session (all habits done,
           // or it expired). Reflect that in the Profile toggle too.
-          if (currentSettings.monkModeEnabled) {
+          if (settings.monkModeEnabled) {
             const updated = { ...settings, monkModeEnabled: false };
             setSettings(updated);
             save(KEYS.SETTINGS, updated);
           }
           return;
         }
-        const { newLogs: resetLogs, updatedSettings, wasReset } =
-          runDailyReset(habits, logs, settings);
-
-
-        if (wasReset) {
-          setLogs(resetLogs);
-          setSettings(updatedSettings);
-          await save(KEYS.LOGS, resetLogs);
-          await save(KEYS.SETTINGS, updatedSettings);
-          await refreshWidget(habits, resetLogs);
-        }
-
-
         const today = getTodayStr();
         if (sessionState.sessionDate !== today) {
           await stopMonkModeSession();
           return;
         }
         let needsUpdate = false;
-        const updatedLogs = [...resetLogs];
+        const updatedLogs = [...logs];
         sessionState.habits.forEach(habit => {
           if (!habit.completed) return;
           const exists = updatedLogs.some(
@@ -210,7 +182,7 @@ useEffect(() => {
           }
         });
         if (needsUpdate) {
-          await setLogsAndSave(updatedLogs);
+          setLogsAndSave(updatedLogs);
         }
         const scheduled = habits.filter(
           h => !h.archived && isHabitScheduledForDate(h, today)
@@ -241,7 +213,7 @@ useEffect(() => {
   }, [isLoading]);
 
 
-  async function refreshWidget(habitsOverride?: Habit[], logsOverride?: HabitLog[]) {
+  async function refreshWidget(habitsOverride, logsOverride) {
     if (Platform.OS !== 'android') return;
     try {
 
@@ -341,7 +313,7 @@ useEffect(() => {
   function setSettingsAndSave(s: AppSettings) { setSettings(s); save(KEYS.SETTINGS, s); }
   function setFreezesAndSave(f: StreakFreeze[]) { setFreezes(f); save(KEYS.FREEZES, f); }
 
-  async function createHabit(data: Omit<Habit, 'id' | 'createdAt' | 'archived' | 'sortOrder'>) {
+  function createHabit(data: Omit<Habit, 'id' | 'createdAt' | 'archived' | 'sortOrder'>) {
     const h: Habit = {
       ...data,
       id: generateId(),
@@ -349,30 +321,14 @@ useEffect(() => {
       archived: false,
       sortOrder: habits.length,
     };
-    await setHabitsAndSave([...habits, h]);
-
-    if (settings.notificationsEnabled) {
-      await scheduleHabitReminder(h);
-    }
+    setHabitsAndSave([...habits, h]);
   }
 
-  async function updateHabit(id: string, updates: Partial<Habit>) {
-    const updatedHabit = habits.find(h => h.id === id);
-    const merged = updatedHabit ? { ...updatedHabit, ...updates } : null;
+  function updateHabit(id: string, updates: Partial<Habit>) {
+    setHabitsAndSave(habits.map(h => h.id === id ? { ...h, ...updates } : h));
+  }
 
-    await setHabitsAndSave(
-      habits.map(h => h.id === id ? { ...h, ...updates } : h)
-    );
-
-    if (merged) {
-      await cancelHabitReminders(id);
-      if (!merged.archived && settings.notificationsEnabled) {
-        await scheduleHabitReminder(merged);
-      }
-    }
-}
-
-  async function deleteHabit(id: string) {
+  function deleteHabit(id: string) {
     const newHabits = habits.filter(h => h.id !== id);
     const newLogs = logs.filter(l => l.habitId !== id);
 
@@ -380,15 +336,14 @@ useEffect(() => {
     setLogs(newLogs);
     setFreezesAndSave(freezes.filter(f => f.habitId !== id));
 
-    await save(KEYS.HABITS, newHabits);
-    await save(KEYS.LOGS, newLogs);
+    save(KEYS.HABITS, newHabits);
+    save(KEYS.LOGS, newLogs);
 
-    await refreshWidget(newHabits, newLogs);
-    await cancelHabitReminders(id);
+    refreshWidget(newHabits, newLogs);
   }
 
-  async function archiveHabit(id: string) { await updateHabit(id, { archived: true }); }
-  async function restoreHabit(id: string) { await updateHabit(id, { archived: false }); }
+  function archiveHabit(id: string) { updateHabit(id, { archived: true }); }
+  function restoreHabit(id: string) { updateHabit(id, { archived: false }); }
 
   function createCategory(data: Omit<Category, 'id' | 'order' | 'collapsed'>) {
     const c: Category = { ...data, id: generateId(), order: categories.length, collapsed: false };
@@ -399,9 +354,9 @@ useEffect(() => {
     setCatsAndSave(categories.map(c => c.id === id ? { ...c, ...updates } : c));
   }
 
-  async function deleteCategory(id: string) {
+  function deleteCategory(id: string) {
     setCatsAndSave(categories.filter(c => c.id !== id));
-    await setHabitsAndSave(habits.map(h => h.categoryId === id ? { ...h, categoryId: '' } : h));
+    setHabitsAndSave(habits.map(h => h.categoryId === id ? { ...h, categoryId: '' } : h));
   }
 
   function reorderCategories(orderedIds: string[]) {
@@ -415,7 +370,7 @@ useEffect(() => {
     setCatsAndSave(categories.map(c => c.id === id ? { ...c, collapsed: !c.collapsed } : c));
   }
 
-  async function markHabit(habitId: string, date: string) {
+  function markHabit(habitId: string, date: string) {
     const today = getTodayStr();
     if (date !== today) return;
     let newLogs: HabitLog[];
@@ -438,7 +393,7 @@ useEffect(() => {
         },
       ];
     }
-    await setLogsAndSave(newLogs);
+    setLogsAndSave(newLogs);
     if (settings.monkModeEnabled) {
       const scheduled = habits.filter(
         h => !h.archived && isHabitScheduledForDate(h, today)
@@ -462,7 +417,7 @@ useEffect(() => {
     return !freezes.some(f => f.month === month);
   }
 
-  async function applyStreakFreeze(): Promise<boolean> {
+  function applyStreakFreeze(): boolean {
     if (!canUseStreakFreeze()) return false;
     const month = getMonthStr(getTodayStr());
     const today = getTodayStr();
@@ -474,7 +429,7 @@ useEffect(() => {
         newLogs.push({ id: generateId(), habitId: h.id, date: today, status: 'frozen' });
       }
     });
-    await setLogsAndSave(newLogs);
+    setLogsAndSave(newLogs);
     const newFreezes: StreakFreeze[] = [...freezes, { habitId: 'global', month, usedDate: today }];
     setFreezesAndSave(newFreezes);
     return true;
@@ -601,7 +556,7 @@ useEffect(() => {
       const ds = formatDate(d);
       if (getLogForHabit(habitId, ds)?.status === 'completed') completed++;
     }
-    return { completed, target: habit.weeklyTarget ?? 0 };
+    return { completed, target: habit.weeklyTarget };
   }
 
   function getCalendarDay(date: string) {

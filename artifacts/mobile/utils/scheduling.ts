@@ -71,21 +71,21 @@ function isWithinRepetitionBounds(habit: Habit, date: Date, created: Date): bool
   switch (repetition.type) {
     case 'days': {
       const end = new Date(created);
-      end.setDate(end.getDate() + repetition.count - 1);
+      end.setDate(end.getDate() + (repetition.count ?? 0) - 1);
       return date <= end;
     }
     case 'weeks': {
       const end = new Date(created);
-      end.setDate(end.getDate() + repetition.count * 7 - 1);
+      end.setDate(end.getDate() + (repetition.count ?? 0) * 7 - 1);
       return date <= end;
     }
     case 'months': {
       const end = new Date(created);
-      end.setMonth(end.getMonth() + repetition.count);
+      end.setMonth(end.getMonth() + (repetition.count ?? 0));
       end.setDate(end.getDate() - 1);
       return date <= end;
     }
-    case 'until': {
+    case 'until_date': {
       if (!repetition.endDate) return true;
       const endDate = parseDate(repetition.endDate);
       return date <= endDate;

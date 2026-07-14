@@ -1,51 +1,19 @@
 export type LogStatus = 'completed' | 'missed' | 'frozen';
 
-export type HabitFrequency =
-  | 'daily'
-  | 'weekly'
-  | 'weekly_target'
-  | 'specific_days'
-  | 'monthly';
-
-export type RepetitionType =
-  | 'forever'
-  | 'days'
-  | 'weeks'
-  | 'months'
-  | 'until_date';
-
-export interface Repetition {
-  type: RepetitionType;
-  count?: number;
-  endDate?: string;
-}
-
 export interface Habit {
   id: string;
   name: string;
   description?: string;
   notes?: string;
   emoji?: string;
-
   categoryId: string;
   createdAt: string;
   archived: boolean;
   sortOrder: number;
-
-  frequency: HabitFrequency;
-
+  frequency: 'daily' | 'weekly' | 'weekly_target' | 'specific_days';
   weeklyTarget?: number;
-
-  // Old schema
   scheduleDays?: number[];
   reminderTime?: string;
-
-  // New schema
-  weekdays?: number[];
-  monthlyDates?: number[];
-  reminderTimes?: string[];
-  repetition?: Repetition;
-
   color?: string;
 }
 
@@ -80,7 +48,6 @@ export interface DailyScore {
   percentage: number;
   missed: number;
 }
-
 export interface DailyStats {
   date: string;
   total: number;
@@ -130,11 +97,10 @@ export interface StreakFreeze {
   month: string;
   usedDate: string;
 }
-
 export interface WidgetCache {
   progress: number;
   streak: number;
- completed: number;
+  completed: number;
   remaining: number;
   tasks: Array<{
     emoji: string;

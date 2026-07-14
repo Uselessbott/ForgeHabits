@@ -30,8 +30,6 @@ export function HomeScreen() {
       weekdays: [],
       monthlyDates: [],
       weeklyTarget: 0,
-      priority: 'medium',
-      reminders: [],
       repetition: { type: 'forever' },
     });
     setNewHabitName('');

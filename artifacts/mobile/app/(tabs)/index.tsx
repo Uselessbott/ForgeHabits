@@ -85,7 +85,7 @@ export default function TodayScreen() {
       'This protects all your streaks for today. You get 1 freeze per month.',
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Use Freeze', onPress: () => { if (applyStreakFreeze()) Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } },
+        { text: 'Use Freeze', onPress: async () => { if (await applyStreakFreeze()) await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } },
       ],
     );
   }

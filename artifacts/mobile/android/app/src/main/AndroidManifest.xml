@@ -71,7 +71,7 @@
       <meta-data android:name="android.appwidget.provider" android:resource="@xml/combined_glance_widget_info"/>
     </receiver>
 
-    <receiver android:name=".glance.HeatmapGlanceWidgetReceiver" android:exported="false" android:label="Heatmap">
+    <receiver android:name=".glance.HeatmapGlanceWidgetReceiver" android:exported="true" android:label="Heatmap">
       <intent-filter>
         <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
       </intent-filter>

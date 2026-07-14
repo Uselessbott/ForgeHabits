@@ -136,7 +136,7 @@ export async function cancelAllHabitReminders(habits: Habit[]): Promise<void> {
 
 export async function rescheduleAllHabitReminders(habits: Habit[]): Promise<void> {
   for (const habit of habits) {
-    if (!habit.archived && habit.reminderTimes?.length > 0) {
+    if (!habit.archived && (habit.reminderTimes?.length ?? 0) > 0) {
       await scheduleHabitReminder(habit);
     }
   }

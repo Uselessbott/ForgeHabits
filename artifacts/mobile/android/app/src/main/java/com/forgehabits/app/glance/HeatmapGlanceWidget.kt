@@ -14,19 +14,25 @@ import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.appwidget.cornerRadius
+import androidx.glance.appwidget.lazy.LazyColumn
+import androidx.glance.appwidget.lazy.items
 import androidx.glance.appwidget.provideContent
 import androidx.glance.background
-import androidx.glance.layout.*
+import androidx.glance.layout.Alignment
+import androidx.glance.layout.Box
+import androidx.glance.layout.Column
+import androidx.glance.layout.Row
+import androidx.glance.layout.fillMaxSize
+import androidx.glance.layout.fillMaxWidth
+import androidx.glance.layout.padding
+import androidx.glance.layout.Spacer
+import androidx.glance.layout.size
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import com.forgehabits.app.MainActivity
 import com.forgehabits.app.WidgetHeatmapDay
 import com.forgehabits.app.WidgetSnapshotRepository
-
-private const val CELL_SIZE_DP = GlanceDimensions.HeatmapCell
-private const val CELL_GAP_DP = GlanceDimensions.HeatmapGap
-private const val HEATMAP_ROWS = GlanceDimensions.HeatmapRows
 
 class HeatmapGlanceWidget : GlanceAppWidget() {
     override val sizeMode = SizeMode.Exact
@@ -37,7 +43,8 @@ class HeatmapGlanceWidget : GlanceAppWidget() {
             GlanceTheme {
                 HeatmapContent(
                     streak = snapshot?.streak ?: 0,
-                    heatmap = snapshot?.heatmap ?: emptyList()
+                    heatmap = snapshot?.heatmap ?: emptyList(),
+                    snapshotToday = snapshot?.today ?: "null"
                 )
             }
         }
@@ -45,36 +52,30 @@ class HeatmapGlanceWidget : GlanceAppWidget() {
 }
 
 @Composable
-private fun HeatmapContent(streak: Int, heatmap: List<WidgetHeatmapDay>) {
+private fun HeatmapContent(streak: Int, heatmap: List<WidgetHeatmapDay>, snapshotToday: String = "") {
     val context = LocalContext.current
     val size = LocalSize.current
     val openAppIntent = Intent(context, MainActivity::class.java)
 
-    val paddingPx = GlanceDimensions.WidgetPadding.value
+    val weeks = heatmap.takeLast(50).chunked(10)
+    val cols = weeks.size.coerceAtLeast(1)
+    val paddingPx = 12f
     val headerHeight = 24f
-    val gap = CELL_GAP_DP
+    val gap = 3f
+    val availableWidth = (size.width.value - paddingPx * 2).coerceAtLeast(40f)
+    val availableHeight = (size.height.value - paddingPx * 2 - headerHeight).coerceAtLeast(30f)
+    val cellFromWidth = (availableWidth - gap * (cols - 1)) / cols
+    val cellFromHeight = (availableHeight - gap * 6) / 7
+    val cellSize = 18f
 
-    val availableWidth =
-        (size.width.value - paddingPx * 2).coerceAtLeast(40f)
-
-    val availableHeight =
-        (size.height.value - paddingPx * 2 - headerHeight)
-            .coerceAtLeast(30f)
-
-    val cols = ((heatmap.size + HEATMAP_ROWS - 1) / HEATMAP_ROWS)
-        .coerceAtLeast(1)
-
-    val cellFromWidth =
-        (availableWidth - gap * (cols - 1)) / cols
-
-    val cellFromHeight =
-        (availableHeight - gap * (HEATMAP_ROWS - 1)) / HEATMAP_ROWS
-
-    val cellSize =
-        minOf(cellFromWidth, cellFromHeight)
-            .coerceAtLeast(4f)
-
-    val weeks = heatmap.chunked(HEATMAP_ROWS)
+    val lastDay = heatmap.lastOrNull()
+    val lastDayBranch = when {
+        lastDay == null -> "NULL"
+        !lastDay.hasData -> "TRACK"
+        lastDay.pct <= 0.0 -> "ACCENT_DIM"
+        lastDay.pct < 0.5 -> "ACCENT_MID"
+        else -> "ACCENT"
+    }
 
     Column(
         modifier = GlanceModifier
@@ -84,32 +85,32 @@ private fun HeatmapContent(streak: Int, heatmap: List<WidgetHeatmapDay>) {
             .clickable(actionStartActivity(openAppIntent))
     ) {
         Text(
-            text = "🔥 $streak day streak",
-            style = GlanceTypography.Title
+            text = "$streak day streak",
+            style = TextStyle(color = GlanceColors.TEXT, fontWeight = FontWeight.Bold)
         )
-
-        Spacer(GlanceModifier.size(GlanceDimensions.SmallSpacing))
-
-        Box(
-            modifier = GlanceModifier.defaultWeight(),
-            contentAlignment = Alignment.Center
-        ) {
-            Row {
-                weeks.forEachIndexed { wi, week ->
-                    Column(
-                        modifier = if (wi < weeks.size - 1)
-                            GlanceModifier.padding(end = CELL_GAP_DP.dp)
-                        else
-                            GlanceModifier
-                    ) {
-                        week.forEachIndexed { index, day ->
+        Text(
+            text = "DBG today=$snapshotToday last=${lastDay?.date} pct=${lastDay?.pct} branch=$lastDayBranch n=${heatmap.size}",
+            style = TextStyle(color = GlanceColors.ACCENT)
+        )
+        // REWRITE: grid is now built with LazyColumn/items(), the same
+        // construct confirmed working for the Tasks widget's checkbox
+        // background (a plain forEach-built Row/Column grid was NOT
+        // rendering per-cell background colors correctly, even after
+        // ruling out cornerRadius interaction and Compose recomposition
+        // identity via key() - both disproven by direct on-device testing).
+        // Each LazyColumn item is one weekday-row; each row is a plain Row
+        // of that week's cells across all weeks.
+        LazyColumn(modifier = GlanceModifier.fillMaxWidth()) {
+            items(5, itemId = { it.toLong() }) { rowIndex ->
+                Row(modifier = GlanceModifier.padding(bottom = gap.dp)) {
+                    weeks.forEachIndexed { wi, week ->
+                        val day = week.getOrNull(rowIndex)
+                        if (day != null) {
                             val cellColor = when {
-                                !day.hasData -> GlanceColors.TRACK
-                                day.pct <= 0.0 -> GlanceColors.TRACK
-                                day.pct < 0.25 -> GlanceColors.ACCENT_DIM
-                                day.pct < 0.50 -> GlanceColors.ACCENT_MID
-                                day.pct < 1.0 -> GlanceColors.ACCENT
-                                else -> GlanceColors.ACCENT_STRONG
+                                !day.hasData -> GlanceColors.DBG_TRACK
+                                day.pct <= 0.0 -> GlanceColors.DBG_ACCENT_DIM
+                                day.pct < 0.5 -> GlanceColors.DBG_ACCENT_MID
+                                else -> GlanceColors.DBG_ACCENT
                             }
                             Box(
                                 modifier = GlanceModifier
@@ -117,8 +118,8 @@ private fun HeatmapContent(streak: Int, heatmap: List<WidgetHeatmapDay>) {
                                     .background(cellColor)
                                     .cornerRadius((cellSize * 0.2f).dp)
                             ) {}
-                            if (index != week.lastIndex) {
-                                Spacer(modifier = GlanceModifier.size(CELL_GAP_DP.dp))
+                            if (wi < weeks.size - 1) {
+                                Spacer(modifier = GlanceModifier.size(gap.dp))
                             }
                         }
                     }
