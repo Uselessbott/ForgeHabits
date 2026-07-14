@@ -1,0 +1,49 @@
+name: Build Release APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build Release APK
+        run: |
+          chmod +x android/gradlew
+          cd android
+          ./gradlew clean
+          ./gradlew assembleRelease --stacktrace | tee ../build.log
+
+      - name: Verify JS bundle
+        run: |
+          find android/app/build -name "*.bundle" || true
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: ForgeWorkout-release
+          path: android/app/build/outputs/apk/release/*.apk
+
+      - name: Upload Build Log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: build.log
