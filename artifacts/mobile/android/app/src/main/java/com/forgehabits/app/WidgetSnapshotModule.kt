@@ -1,6 +1,7 @@
 package com.forgehabits.app
 
 import androidx.glance.appwidget.updateAll
+import android.util.Log
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
@@ -42,9 +43,18 @@ class WidgetSnapshotModule(reactContext: ReactApplicationContext) :
         // data (the "shows 2 completed instead of 5" bug).
         moduleScope.launch {
             try {
+                Log.d("ForgeWidget", "WRITE START")
                 WidgetSnapshotRepository.write(reactApplicationContext, snapshotJson)
+                Log.d("ForgeWidget", "WRITE DONE")
+
                 ensureActive()
+
+                Log.d("ForgeWidget", "UPDATE START")
                 ProgressGlanceWidget().updateAll(reactApplicationContext)
+                TasksGlanceWidget().updateAll(reactApplicationContext)
+                CombinedGlanceWidget().updateAll(reactApplicationContext)
+                HeatmapGlanceWidget().updateAll(reactApplicationContext)
+                Log.d("ForgeWidget", "UPDATE DONE")
                 TasksGlanceWidget().updateAll(reactApplicationContext)
                 CombinedGlanceWidget().updateAll(reactApplicationContext)
                 HeatmapGlanceWidget().updateAll(reactApplicationContext)

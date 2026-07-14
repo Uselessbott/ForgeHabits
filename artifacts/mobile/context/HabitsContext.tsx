@@ -139,14 +139,7 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(false);
     })();
   }, []);
-
-  useEffect(() => {
-    if (isLoading) return;
-    refreshWidget(habits, logs);
-  }, [habits, logs, isLoading]);
-
-
-  useEffect(() => {
+useEffect(() => {
     if (Platform.OS !== 'android' || isLoading) return;
     const reconcile = async () => {
       try {
@@ -288,6 +281,8 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
         habits: habitList,
         heatmap: history,
       };
+      console.log("ForgeWidget: writeSnapshot", snapshot.completed, snapshot.total, snapshot.streak);
+
       if (NativeModules.WidgetSnapshotModule?.writeSnapshot) {
         NativeModules.WidgetSnapshotModule.writeSnapshot(JSON.stringify(snapshot)).catch(
           (e: unknown) => console.warn('widget snapshot write failed:', e)
