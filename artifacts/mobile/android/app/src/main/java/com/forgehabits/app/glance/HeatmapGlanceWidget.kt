@@ -57,15 +57,16 @@ private fun HeatmapContent(streak: Int, heatmap: List<WidgetHeatmapDay>, snapsho
     val size = LocalSize.current
     val openAppIntent = Intent(context, MainActivity::class.java)
 
-    val weeks = heatmap.takeLast(50).chunked(10)
-    val cols = weeks.size.coerceAtLeast(1)
+    val rows = 5
+    val cols = 10
+    val weeks = heatmap.takeLast(rows * cols).chunked(rows)
     val paddingPx = 12f
     val headerHeight = 24f
     val gap = 3f
     val availableWidth = (size.width.value - paddingPx * 2).coerceAtLeast(40f)
     val availableHeight = (size.height.value - paddingPx * 2 - headerHeight).coerceAtLeast(30f)
     val cellFromWidth = (availableWidth - gap * (cols - 1)) / cols
-    val cellFromHeight = (availableHeight - gap * 6) / 7
+    val cellFromHeight = (availableHeight - gap * (rows - 1)) / rows
     val cellSize = 18f
 
     Column(
@@ -79,10 +80,6 @@ private fun HeatmapContent(streak: Int, heatmap: List<WidgetHeatmapDay>, snapsho
             text = "$streak day streak",
             style = TextStyle(color = GlanceColors.TEXT, fontWeight = FontWeight.Bold)
         )
-        Text(
-            text = snapshotToday,
-            style = TextStyle(color = GlanceColors.SUBTEXT)
-        )
         // REWRITE: grid is now built with LazyColumn/items(), the same
         // construct confirmed working for the Tasks widget's checkbox
         // background (a plain forEach-built Row/Column grid was NOT
@@ -92,7 +89,7 @@ private fun HeatmapContent(streak: Int, heatmap: List<WidgetHeatmapDay>, snapsho
         // Each LazyColumn item is one weekday-row; each row is a plain Row
         // of that week's cells across all weeks.
         LazyColumn(modifier = GlanceModifier.fillMaxWidth()) {
-            items(5, itemId = { it.toLong() }) { rowIndex ->
+            items(rows, itemId = { it.toLong() }) { rowIndex ->
                 Row(modifier = GlanceModifier.padding(bottom = gap.dp)) {
                     weeks.forEachIndexed { wi, week ->
                         val day = week.getOrNull(rowIndex)
@@ -100,8 +97,10 @@ private fun HeatmapContent(streak: Int, heatmap: List<WidgetHeatmapDay>, snapsho
                             val cellColor = when {
                                 !day.hasData -> GlanceColors.TRACK
                                 day.pct <= 0.0 -> GlanceColors.ACCENT_DIM
-                                day.pct < 0.5 -> GlanceColors.ACCENT_MID
-                                else -> GlanceColors.ACCENT
+                                day.pct < 0.25 -> GlanceColors.ACCENT_DIM
+                                day.pct < 0.50 -> GlanceColors.ACCENT_MID
+                                day.pct < 1.0 -> GlanceColors.ACCENT
+                                else -> GlanceColors.ACCENT_STRONG
                             }
                             Box(
                                 modifier = GlanceModifier
