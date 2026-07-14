@@ -60,6 +60,7 @@ private fun HeatmapContent(streak: Int, heatmap: List<WidgetHeatmapDay>, snapsho
     val rows = 5
     val cols = 10
     val weeks = heatmap.takeLast(rows * cols).chunked(rows)
+    android.util.Log.d("ForgeWidget", "heatmap.size=${heatmap.size} weeks.size=${weeks.size} weeks[0].size=${weeks.firstOrNull()?.size}")
     val paddingPx = 12f
     val headerHeight = 24f
     val gap = 3f

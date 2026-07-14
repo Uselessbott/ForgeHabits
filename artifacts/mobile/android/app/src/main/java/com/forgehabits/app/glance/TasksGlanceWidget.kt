@@ -64,7 +64,7 @@ private fun TasksContent(completed: Int, total: Int, habits: List<WidgetHabit>) 
             .padding(12.dp)
     ) {
         Text(
-            text = "Today ($completed/$total) ${System.currentTimeMillis() % 100000}",
+            text = "Today ($completed/$total)",
             style = GlanceTypography.Title
         )
         Spacer(GlanceModifier.height(6.dp))
