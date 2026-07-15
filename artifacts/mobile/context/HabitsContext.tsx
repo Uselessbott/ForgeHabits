@@ -20,9 +20,8 @@ import {
 } from "@/utils/monkMode";
 
 import {
-  scheduleHabitReminder,
   cancelHabitReminders,
-  rescheduleAllHabitReminders,
+  scheduleRandomRemindersForAll,
   scheduleMidnightReset,
 } from '@/utils/notifications';
 
@@ -142,7 +141,7 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
           if (finalSettings !== loadedSettings) save(KEYS.SETTINGS, finalSettings);
 
           if (finalSettings.notificationsEnabled) {
-            await rescheduleAllHabitReminders(loadedHabits);
+            await scheduleRandomRemindersForAll(loadedHabits);
             await scheduleMidnightReset();
           }
 
@@ -352,7 +351,7 @@ useEffect(() => {
     await setHabitsAndSave([...habits, h]);
 
     if (settings.notificationsEnabled) {
-      await scheduleHabitReminder(h);
+      await scheduleRandomHabitReminders(h);
     }
   }
 
@@ -367,7 +366,7 @@ useEffect(() => {
     if (merged) {
       await cancelHabitReminders(id);
       if (!merged.archived && settings.notificationsEnabled) {
-        await scheduleHabitReminder(merged);
+        await scheduleRandomHabitReminders(merged);
       }
     }
 }
@@ -437,6 +436,7 @@ useEffect(() => {
           completedAt: new Date().toISOString(),
         },
       ];
+      await cancelHabitReminders(habitId);
     }
     await setLogsAndSave(newLogs);
     if (settings.monkModeEnabled) {

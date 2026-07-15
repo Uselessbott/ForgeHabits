@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import * as Notifications from 'expo-notifications';
 import {
   View, Text, TextInput, StyleSheet, TouchableOpacity, ScrollView,
   Switch, Alert, Platform,
@@ -11,7 +12,7 @@ import { useColors } from '@/hooks/useColors';
 import { useHabits } from '@/context/HabitsContext';
 import {
   requestNotificationPermissions,
-  rescheduleAllHabitReminders,
+  scheduleRandomRemindersForAll,
   cancelAllHabitReminders,
   scheduleMidnightReset,
 } from '@/utils/notifications';
@@ -46,10 +47,11 @@ export default function ProfileScreen() {
       // Permission granted — persist the enabled state immediately so the
       // profile toggle reflects reality without requiring an app restart
       updateSettings({ notificationsEnabled: true });
-      await rescheduleAllHabitReminders(habits);
+      await scheduleRandomRemindersForAll(habits);
       await scheduleMidnightReset();
     } else {
       await cancelAllHabitReminders(habits);
+      await Notifications.cancelScheduledNotificationAsync('midnight_reset');
       updateSettings({ notificationsEnabled: false });
     }
   }

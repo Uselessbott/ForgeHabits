@@ -155,3 +155,56 @@ export async function testNotification(): Promise<void> {
     },
   });
 }
+
+// Schedules 3-5 randomly-timed reminders per day (8 AM - 10 PM window) for
+// a single habit. Only schedules times still in the future relative to now,
+// so re-running this mid-day won't create reminders for times already
+// passed. Reuses the same "habit_<id>_" identifier prefix as the old fixed
+// reminders, so cancelHabitReminders() cancels these too with no changes.
+export async function scheduleRandomHabitReminders(habit: Habit): Promise<void> {
+  await cancelHabitReminders(habit.id);
+  const count = 3 + Math.floor(Math.random() * 3); // 3-5 inclusive
+  const startHour = 8;
+  const endHour = 22;
+  const now = new Date();
+  const times: Date[] = [];
+  let attempts = 0;
+  while (times.length < count && attempts < 50) {
+    attempts++;
+    const hour = startHour + Math.floor(Math.random() * (endHour - startHour));
+    const minute = Math.floor(Math.random() * 60);
+    const candidate = new Date();
+    candidate.setHours(hour, minute, 0, 0);
+    if (candidate.getTime() > now.getTime()) {
+      times.push(candidate);
+    }
+  }
+  for (let i = 0; i < times.length; i++) {
+    try {
+      await Notifications.scheduleNotificationAsync({
+        identifier: `habit_${habit.id}_rand_${i}`,
+        content: {
+          title: `${habit.emoji} ${habit.name}`,
+          body: habit.description || 'Still time to knock this out today.',
+          data: { habitId: habit.id },
+          sound: 'default',
+        },
+        trigger: {
+          type: Notifications.SchedulableTriggerInputTypes.DATE,
+          date: times[i],
+          channelId: 'forgehabits_default',
+        },
+      });
+    } catch (error) {
+      console.warn(`Failed to schedule random reminder for habit ${habit.id}:`, error);
+    }
+  }
+}
+
+export async function scheduleRandomRemindersForAll(habits: Habit[]): Promise<void> {
+  for (const habit of habits) {
+    if (!habit.archived) {
+      await scheduleRandomHabitReminders(habit);
+    }
+  }
+}
