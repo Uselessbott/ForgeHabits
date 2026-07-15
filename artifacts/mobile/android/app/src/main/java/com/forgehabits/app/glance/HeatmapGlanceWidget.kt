@@ -90,13 +90,10 @@ private fun HeatmapContent(streak: Int, heatmap: List<WidgetHeatmapDay>, updated
                             GlanceModifier
                     ) {
                         week.forEachIndexed { index, day ->
-                            val cellColor = when {
-                                !day.hasData -> GlanceColors.TRACK
-                                day.pct <= 0.0 -> GlanceColors.TRACK
-                                day.pct < 0.25 -> GlanceColors.ACCENT_DIM
-                                day.pct < 0.50 -> GlanceColors.ACCENT_MID
-                                day.pct < 1.0 -> GlanceColors.ACCENT
-                                else -> GlanceColors.ACCENT_STRONG
+                            val cellColor = if (!day.hasData || day.pct <= 0.0) {
+                                GlanceColors.TRACK
+                            } else {
+                                interpolateAccentColor(day.pct.toFloat().coerceIn(0f, 1f))
                             }
                             Box(
                                 modifier = GlanceModifier
