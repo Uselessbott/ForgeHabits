@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Feather } from '@expo/vector-icons';
 import { useColors } from '@/hooks/useColors';
-import { Habit, HabitLog } from '@/context/types';
+import { Habit, HabitLog, Subtask } from '@/context/types';
 
 interface HabitCardProps {
   habit: Habit;
@@ -13,15 +13,33 @@ interface HabitCardProps {
   onToggle: () => void;
   onLongPress?: () => void;
   weeklyProgress?: { completed: number; target: number };
+  onToggleSubtask?: (subtaskId: string) => void;
 }
 
-export function HabitCard({ habit, log, streak, isToday, onToggle, onLongPress, weeklyProgress }: HabitCardProps) {
+export function HabitCard({
+  habit,
+  log,
+  streak,
+  isToday,
+  onToggle,
+  onLongPress,
+  weeklyProgress,
+  onToggleSubtask,
+}: HabitCardProps) {
   const colors = useColors();
-  const isCompleted = log?.status === 'completed';
+  const hasSubtasks = (habit.subtasks?.length ?? 0) > 0;
+
+  const isCompleted = hasSubtasks
+    ? habit.subtasks!.every(
+        st => log?.completedSubtasks?.includes(st.id) ?? false
+      )
+    : log?.status === 'completed';
+
   const isFrozen = log?.status === 'frozen';
 
   function handleToggle() {
     if (!isToday) return;
+    if (habit.subtasks?.length) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onToggle();
   }
@@ -76,6 +94,56 @@ export function HabitCard({ habit, log, streak, isToday, onToggle, onLongPress, 
           <Text style={[styles.sub, { color: colors.mutedForeground }]} numberOfLines={1}>
             {habit.description}
           </Text>
+        ) : null}
+
+        {habit.subtasks?.length ? (
+          <View style={styles.subtasksContainer}>
+            {habit.subtasks.map(subtask => {
+              const checked =
+                log?.completedSubtasks?.includes(subtask.id) ?? false;
+
+              return (
+                <TouchableOpacity
+                  key={subtask.id}
+                  style={styles.subtaskRow}
+                  disabled={!isToday}
+                  activeOpacity={0.7}
+                  onPress={() => onToggleSubtask?.(subtask.id)}
+                >
+                  <View
+                    style={[
+                      styles.subtaskCheckbox,
+                      {
+                        borderColor: checked ? colors.primary : colors.border,
+                        backgroundColor: checked
+                          ? colors.primary
+                          : 'transparent',
+                      },
+                    ]}
+                  >
+                    {checked && (
+                      <Feather
+                        name="check"
+                        size={10}
+                        color={colors.primaryForeground}
+                      />
+                    )}
+                  </View>
+
+                  <Text
+                    style={[
+                      styles.subtaskText,
+                      { color: checked ? colors.mutedForeground : colors.foreground },
+                      checked && styles.subtaskTextCompleted,
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {subtask.title}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
         ) : null}
       </View>
 
@@ -143,5 +211,31 @@ const styles = StyleSheet.create({
   streakNum: {
     fontSize: 14,
     fontFamily: 'Inter_600SemiBold',
+  },
+  subtasksContainer: {
+    marginTop: 6,
+    gap: 6,
+  },
+  subtaskRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  subtaskCheckbox: {
+    width: 16,
+    height: 16,
+    borderRadius: 4,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  subtaskText: {
+    flex: 1,
+    fontSize: 13,
+    fontFamily: 'Inter_400Regular',
+  },
+  subtaskTextCompleted: {
+    textDecorationLine: 'line-through',
+    opacity: 0.6,
   },
 });

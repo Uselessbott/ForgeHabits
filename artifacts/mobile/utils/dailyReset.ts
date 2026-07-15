@@ -35,6 +35,8 @@ export function runDailyReset(
           date: dateStr,
           status: 'missed',
         });
+      } else if (existing.status === 'in_progress') {
+        existing.status = 'missed';
       }
     }
     cursor.setDate(cursor.getDate() + 1);

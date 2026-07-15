@@ -3,7 +3,7 @@ import { Platform, AppState, NativeModules } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   Habit, Category, HabitLog, AppSettings, DailyScore,
-  LogStatus, LifetimeStats, WeeklyStats, MonthlyStats, DailyStats, StreakFreeze,
+  LogStatus, LifetimeStats, WeeklyStats, MonthlyStats, DailyStats, StreakFreeze, TodayTask, Subtask,
 } from './types';
 import {
   formatDate, parseDate, getTodayStr, isHabitScheduledForDate,
@@ -21,6 +21,7 @@ import {
 
 import {
   cancelHabitReminders,
+  scheduleRandomHabitReminders,
   scheduleRandomRemindersForAll,
   scheduleMidnightReset,
 } from '@/utils/notifications';
@@ -32,6 +33,7 @@ const KEYS = {
   LOGS: '@fg:logs',
   SETTINGS: '@fg:settings',
   FREEZES: '@fg:freezes',
+  TODAY_TASKS: '@fg:today_tasks',
 };
 
 const DEFAULT_SETTINGS: AppSettings = {
@@ -56,7 +58,12 @@ interface HabitsContextType {
   logs: HabitLog[];
   freezes: StreakFreeze[];
   settings: AppSettings;
+  todayTasks: TodayTask[];
   isLoading: boolean;
+
+  addTodayTask: (title: string) => void;
+  toggleTodayTask: (id: string) => void;
+  deleteTodayTask: (id: string) => void;
   createHabit: (data: Omit<Habit, 'id' | 'createdAt' | 'archived' | 'sortOrder'>) => void;
   updateHabit: (id: string, updates: Partial<Habit>) => void;
   deleteHabit: (id: string) => void;
@@ -68,6 +75,9 @@ interface HabitsContextType {
   reorderCategories: (orderedIds: string[]) => void;
   toggleCategoryCollapsed: (id: string) => void;
   markHabit: (habitId: string, date: string) => void;
+  addSubtask: (habitId: string, title: string) => Promise<void>;
+  toggleSubtask: (habitId: string, subtaskId: string, date: string) => Promise<void>;
+  deleteSubtask: (habitId: string, subtaskId: string) => Promise<void>;
   applyStreakFreeze: () => Promise<boolean>;
   updateSettings: (updates: Partial<AppSettings>) => void;
   resetAllData: () => Promise<void>;
@@ -101,6 +111,7 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [logs, setLogs] = useState<HabitLog[]>([]);
   const [freezes, setFreezes] = useState<StreakFreeze[]>([]);
+  const [todayTasks, setTodayTasks] = useState<TodayTask[]>([]);
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
   const [isLoading, setIsLoading] = useState(true);
   const resetRanRef = useRef(false);
@@ -108,22 +119,24 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     (async () => {
       try {
-        const [h, c, l, s, f] = await Promise.all([
+        const [h, c, l, s, f, tt] = await Promise.all([
           AsyncStorage.getItem(KEYS.HABITS),
           AsyncStorage.getItem(KEYS.CATEGORIES),
           AsyncStorage.getItem(KEYS.LOGS),
           AsyncStorage.getItem(KEYS.SETTINGS),
           AsyncStorage.getItem(KEYS.FREEZES),
+          AsyncStorage.getItem(KEYS.TODAY_TASKS),
         ]);
         const loadedHabits: Habit[] = h ? JSON.parse(h) : [];
         const loadedCategories: Category[] = c ? JSON.parse(c) : DEFAULT_CATEGORIES;
         const loadedLogs: HabitLog[] = l ? JSON.parse(l) : [];
         const loadedSettings: AppSettings = s ? { ...DEFAULT_SETTINGS, ...JSON.parse(s) } : DEFAULT_SETTINGS;
         const loadedFreezes: StreakFreeze[] = f ? JSON.parse(f) : [];
+        const loadedTodayTasks: TodayTask[] = tt ? JSON.parse(tt) : [];
         if (!c) save(KEYS.CATEGORIES, DEFAULT_CATEGORIES);
         if (!resetRanRef.current) {
           resetRanRef.current = true;
-          const { newLogs, updatedSettings } = runDailyReset(loadedHabits, loadedLogs, loadedSettings);
+          const { newLogs, updatedSettings, wasReset } = runDailyReset(loadedHabits, loadedLogs, loadedSettings);
           let finalSettings = updatedSettings;
           try {
             const permResult = await Notifications.getPermissionsAsync();
@@ -137,6 +150,11 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
           setLogs(newLogs);
           setSettings(finalSettings);
           setFreezes(loadedFreezes);
+          setTodayTasks(wasReset ? [] : loadedTodayTasks);
+
+          if (wasReset) {
+            await AsyncStorage.removeItem(KEYS.TODAY_TASKS);
+          }
           if (newLogs.length !== loadedLogs.length) save(KEYS.LOGS, newLogs);
           if (finalSettings !== loadedSettings) save(KEYS.SETTINGS, finalSettings);
 
@@ -175,6 +193,8 @@ useEffect(() => {
 
         if (wasReset) {
           setLogs(resetLogs);
+          setTodayTasks([]);
+          await AsyncStorage.removeItem(KEYS.TODAY_TASKS);
           setSettings(updatedSettings);
           await save(KEYS.LOGS, resetLogs);
           await save(KEYS.SETTINGS, updatedSettings);
@@ -307,6 +327,7 @@ useEffect(() => {
         remaining,
         streak,
         habits: habitList,
+        todayTasks: todayTasks.map(t => ({ id: t.id, title: t.title, completed: t.completed })),
         heatmap: history,
       };
       console.log("ForgeWidget: writeSnapshot", snapshot.completed, snapshot.total, snapshot.streak);
@@ -339,6 +360,12 @@ useEffect(() => {
   }
   function setSettingsAndSave(s: AppSettings) { setSettings(s); save(KEYS.SETTINGS, s); }
   function setFreezesAndSave(f: StreakFreeze[]) { setFreezes(f); save(KEYS.FREEZES, f); }
+
+  async function setTodayTasksAndSave(tasks: TodayTask[]) {
+    setTodayTasks(tasks);
+    await save(KEYS.TODAY_TASKS, tasks);
+    await refreshWidget(habits, logs);
+  }
 
   async function createHabit(data: Omit<Habit, 'id' | 'createdAt' | 'archived' | 'sortOrder'>) {
     const h: Habit = {
@@ -416,7 +443,13 @@ useEffect(() => {
 
   async function markHabit(habitId: string, date: string) {
     const today = getTodayStr();
-    if (date !== today) return;
+    if (date != today) return;
+
+    const habit = habits.find(h => h.id === habitId);
+    if (habit?.subtasks?.length) {
+      // Habits with subtasks are completed through subtask toggles.
+      return;
+    }
     let newLogs: HabitLog[];
     const existing = logs.find(
       l => l.habitId === habitId && l.date === date
@@ -455,6 +488,152 @@ useEffect(() => {
       }));
       syncMonkModeSession(habitData).catch(() => {});
     }
+  }
+
+  async function addSubtask(habitId: string, title: string) {
+    const trimmed = title.trim();
+    if (!trimmed) return;
+
+    const habit = habits.find(h => h.id === habitId);
+    if (!habit) return;
+
+    const newSubtask: Subtask = {
+      id: generateId(),
+      title: trimmed,
+    };
+
+    const updatedHabits = habits.map(h =>
+      h.id === habitId
+        ? {
+            ...h,
+            subtasks: [...(h.subtasks ?? []), newSubtask],
+          }
+        : h
+    );
+
+    await setHabitsAndSave(updatedHabits);
+  }
+
+  async function toggleSubtask(habitId: string, subtaskId: string, date: string) {
+    const habit = habits.find(h => h.id === habitId);
+    if (!habit || !habit.subtasks?.length) return;
+
+    const existingLog = logs.find(
+      l => l.habitId === habitId && l.date === date
+    );
+
+    const completed = [...(existingLog?.completedSubtasks ?? [])];
+
+    const idx = completed.indexOf(subtaskId);
+    if (idx >= 0) {
+      completed.splice(idx, 1);
+    } else {
+      completed.push(subtaskId);
+    }
+
+    let newLogs = [...logs];
+
+    // Nothing checked anymore -> remove today's log
+    if (completed.length === 0) {
+      newLogs = newLogs.filter(
+        l => !(l.habitId === habitId && l.date === date)
+      );
+      await setLogsAndSave(newLogs);
+      return;
+    }
+
+    const finished = completed.length === habit.subtasks.length;
+
+    if (existingLog) {
+      newLogs = newLogs.map(l =>
+        l.habitId === habitId && l.date === date
+          ? {
+              ...l,
+              status: finished ? 'completed' : 'in_progress',
+              completedSubtasks: completed,
+              completedAt: finished ? new Date().toISOString() : undefined,
+            }
+          : l
+      );
+    } else {
+      newLogs.push({
+        id: generateId(),
+        habitId,
+        date,
+        status: finished ? 'completed' : 'in_progress',
+        completedAt: finished ? new Date().toISOString() : undefined,
+        completedSubtasks: completed,
+      });
+    }
+
+    await setLogsAndSave(newLogs);
+}
+
+  async function deleteSubtask(habitId: string, subtaskId: string) {
+    const updatedHabits = habits.map(h => {
+      if (h.id !== habitId) return h;
+      return {
+        ...h,
+        subtasks: (h.subtasks ?? []).filter(st => st.id !== subtaskId),
+      };
+    });
+
+    const updatedHabit = updatedHabits.find(h => h.id === habitId);
+
+    let updatedLogs = logs
+      .map(log => {
+        if (log.habitId !== habitId) return log;
+
+        const completed = (log.completedSubtasks ?? []).filter(
+          id => id !== subtaskId
+        );
+
+        if (completed.length === 0) {
+          return null;
+        }
+
+        const allDone =
+          (updatedHabit?.subtasks?.length ?? 0) > 0 &&
+          updatedHabit!.subtasks!.every(st => completed.includes(st.id));
+
+        return {
+          ...log,
+          completedSubtasks: completed,
+          status: allDone ? 'completed' : 'in_progress',
+          completedAt: allDone ? log.completedAt : undefined,
+        };
+      })
+      .filter((x): x is HabitLog => x !== null);
+
+    await setHabitsAndSave(updatedHabits);
+    await setLogsAndSave(updatedLogs);
+}
+
+  async function addTodayTask(title: string) {
+    if (!title.trim()) return;
+    await setTodayTasksAndSave([
+      ...todayTasks,
+      {
+        id: generateId(),
+        title: title.trim(),
+        completed: false,
+        createdAt: getTodayStr(),
+      },
+    ]);
+  }
+
+  async function toggleTodayTask(id: string) {
+    await setTodayTasksAndSave(
+      todayTasks.map(t =>
+        t.id === id ? { ...t, completed: !t.completed } : t
+      )
+    );
+  }
+
+  async function deleteTodayTask(id: string) {
+    await setTodayTasksAndSave(
+      todayTasks.filter(t => t.id !== id)
+    );
   }
 
   function canUseStreakFreeze(): boolean {
@@ -778,14 +957,29 @@ useEffect(() => {
 
   return (
     <HabitsContext.Provider value={{
-      habits, categories, logs, freezes, settings, isLoading,
+      habits, categories, logs, freezes, settings,
+      todayTasks,
+      isLoading,
       createHabit, updateHabit, deleteHabit, archiveHabit, restoreHabit,
       createCategory, updateCategory, deleteCategory, reorderCategories, toggleCategoryCollapsed,
-      markHabit, applyStreakFreeze, updateSettings, resetAllData,
+      markHabit,
+      addSubtask,
+      toggleSubtask,
+      deleteSubtask,
+      applyStreakFreeze,
+      updateSettings,
+      resetAllData,
       getHabitsForDate, getLogForHabit, getDailyScore, getDailyStats,
       getStreakData, getWeeklyTargetProgress, getCalendarDay, canUseStreakFreeze,
       getLifetimeStats, getWeeklyStats, getMonthlyStats, getWeeklyReview,
-      getLast7DaysData, getHabitCompletionHistory, getOverallConsistency, searchHabits,
+      getLast7DaysData,
+      getHabitCompletionHistory,
+      getOverallConsistency,
+      searchHabits,
+
+      addTodayTask,
+      toggleTodayTask,
+      deleteTodayTask,
     }}>
       {children}
     </HabitsContext.Provider>

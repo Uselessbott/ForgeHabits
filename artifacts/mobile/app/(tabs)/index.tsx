@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
-  Alert, Platform,
+  Alert, Platform, TextInput,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
@@ -27,10 +27,23 @@ export default function TodayScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const {
-    habits, categories, settings,
-    getHabitsForDate, getLogForHabit, getDailyScore, getStreakData,
-    getWeeklyTargetProgress, markHabit, applyStreakFreeze, canUseStreakFreeze,
+    habits,
+    categories,
+    settings,
+    todayTasks,
+    getHabitsForDate,
+    getLogForHabit,
+    getDailyScore,
+    getStreakData,
+    getWeeklyTargetProgress,
+    markHabit,
+    applyStreakFreeze,
+    canUseStreakFreeze,
     updateSettings,
+    addTodayTask,
+    toggleTodayTask,
+    deleteTodayTask,
+    toggleSubtask,
   } = useHabits();
 
   const today = getTodayStr();
@@ -49,6 +62,15 @@ export default function TodayScreen() {
     if (habits.filter(h => !h.archived).length === 0) return 0;
     return habits.filter(h => !h.archived).reduce((max, h) => Math.max(max, getStreakData(h.id).longest), 0);
   }, [habits]);
+
+  const [newTaskTitle, setNewTaskTitle] = useState('');
+
+  function handleAddTask() {
+    if (!newTaskTitle.trim()) return;
+    addTodayTask(newTaskTitle);
+    setNewTaskTitle('');
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  }
 
   const greeting = getGreeting(settings.userName, remaining, score.completed);
 
@@ -204,6 +226,9 @@ export default function TodayScreen() {
                         isToday={true}
                         onToggle={() => handleToggle(habit.id)}
                         weeklyProgress={weeklyProgress}
+                        onToggleSubtask={(subtaskId) =>
+                          toggleSubtask(habit.id, subtaskId, today)
+                        }
                       />
                     );
                   })}
@@ -220,7 +245,17 @@ export default function TodayScreen() {
                     const log = getLogForHabit(habit.id, today);
                     const { current } = getStreakData(habit.id);
                     return (
-                      <HabitCard key={habit.id} habit={habit} log={log} streak={current} isToday={true} onToggle={() => handleToggle(habit.id)} />
+                      <HabitCard
+                        key={habit.id}
+                        habit={habit}
+                        log={log}
+                        streak={current}
+                        isToday={true}
+                        onToggle={() => handleToggle(habit.id)}
+                        onToggleSubtask={(subtaskId) =>
+                          toggleSubtask(habit.id, subtaskId, today)
+                        }
+                      />
                     );
                   })}
                 </View>
@@ -236,6 +271,61 @@ export default function TodayScreen() {
             <Text style={[styles.freezeSub, { color: colors.mutedForeground }]}>1 available this month · protects all habits today</Text>
           </TouchableOpacity>
         )}
+
+        {/* Quick Tasks */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: colors.mutedForeground }]}>
+            ⚡ QUICK TASKS
+          </Text>
+          <View style={[styles.taskInputContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <TextInput
+              style={[styles.taskInput, { color: colors.foreground }]}
+              placeholder="Add a quick task..."
+              placeholderTextColor={colors.mutedForeground}
+              value={newTaskTitle}
+              onChangeText={setNewTaskTitle}
+              onSubmitEditing={handleAddTask}
+              returnKeyType="done"
+            />
+            <TouchableOpacity
+              style={[styles.taskAddBtn, { backgroundColor: colors.primary }]}
+              onPress={handleAddTask}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.taskAddBtnText}>+</Text>
+            </TouchableOpacity>
+          </View>
+
+          {todayTasks.length === 0 ? (
+            <Text style={[styles.emptyTaskText, { color: colors.mutedForeground }]}>
+              No quick tasks for today.
+            </Text>
+          ) : (
+            todayTasks.map(task => (
+              <View key={task.id} style={[styles.taskItem, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                <TouchableOpacity
+                  style={styles.taskCheckbox}
+                  onPress={() => toggleTodayTask(task.id)}
+                  activeOpacity={0.7}
+                >
+                  <View style={[styles.checkboxInner, task.completed ? { backgroundColor: colors.primary, borderColor: colors.primary } : { borderColor: colors.mutedForeground }]}>
+                    {task.completed && <Text style={styles.checkmark}>✓</Text>}
+                  </View>
+                </TouchableOpacity>
+                <Text style={[styles.taskTitle, task.completed ? { textDecorationLine: 'line-through', color: colors.mutedForeground } : { color: colors.foreground }]}>
+                  {task.title}
+                </Text>
+                <TouchableOpacity
+                  style={styles.taskDeleteBtn}
+                  onPress={() => deleteTodayTask(task.id)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={{ color: '#ef4444', fontSize: 18 }}>🗑️</Text>
+                </TouchableOpacity>
+              </View>
+            ))
+          )}
+        </View>
 
         {/* Completion Banner */}
         {score.total > 0 && score.percentage === 100 && (
@@ -283,4 +373,15 @@ const styles = StyleSheet.create({
   freezeSub: { fontSize: 12, fontFamily: 'Inter_400Regular' },
   completionBanner: { borderRadius: 12, borderWidth: 1, padding: 14, alignItems: 'center', marginTop: 8 },
   completionText: { fontSize: 15, fontFamily: 'Inter_600SemiBold' },
+  taskInputContainer: { flexDirection: 'row', alignItems: 'center', borderRadius: 12, borderWidth: 1, marginBottom: 12, paddingHorizontal: 12 },
+  taskInput: { flex: 1, fontSize: 14, fontFamily: 'Inter_400Regular', paddingVertical: 12 },
+  taskAddBtn: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginLeft: 8 },
+  taskAddBtnText: { color: '#fff', fontSize: 20, fontFamily: 'Inter_700Bold', lineHeight: 20 },
+  emptyTaskText: { fontSize: 13, fontFamily: 'Inter_400Regular', textAlign: 'center', paddingVertical: 8 },
+  taskItem: { flexDirection: 'row', alignItems: 'center', borderRadius: 12, borderWidth: 1, padding: 12, marginBottom: 8 },
+  taskCheckbox: { marginRight: 12 },
+  checkboxInner: { width: 22, height: 22, borderRadius: 6, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+  checkmark: { color: '#fff', fontSize: 14, fontFamily: 'Inter_700Bold' },
+  taskTitle: { flex: 1, fontSize: 14, fontFamily: 'Inter_500Medium' },
+  taskDeleteBtn: { padding: 4 },
 });

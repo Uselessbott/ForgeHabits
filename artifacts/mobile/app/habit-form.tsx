@@ -8,7 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useColors } from '@/hooks/useColors';
 import { useHabits } from '@/context/HabitsContext';
-import { Habit, HabitFrequency, RepetitionType } from '@/context/types';
+import { Habit, HabitFrequency, RepetitionType, Subtask } from '@/context/types';
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTH_DATES = Array.from({ length: 31 }, (_, i) => i + 1);
@@ -30,6 +30,8 @@ export default function HabitFormScreen() {
   const [weeklyTarget, setWeeklyTarget] = useState(existing?.weeklyTarget ?? 3);
   const [monthlyDates, setMonthlyDates] = useState<number[]>(existing?.monthlyDates ?? [1]);
   const [notes, setNotes] = useState(existing?.notes ?? '');
+  const [subtasks, setSubtasks] = useState<Subtask[]>(existing?.subtasks ?? []);
+  const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
   const [repType, setRepType] = useState<RepetitionType>(existing?.repetition?.type ?? 'forever');
 
   const topInset = insets.top + (Platform.OS === 'web' ? 67 : 0);
@@ -52,6 +54,7 @@ export default function HabitFormScreen() {
       reminderTimes: [],
       notes: notes.trim(),
       repetition: { type: repType, count: 30, endDate: '' },
+      subtasks: subtasks.length ? subtasks : undefined,
     };
     if (existing) {
       updateHabit(existing.id, data);
@@ -71,6 +74,24 @@ export default function HabitFormScreen() {
     setMonthlyDates(prev =>
       prev.includes(date) ? prev.filter(d => d !== date) : [...prev, date].sort((a, b) => a - b),
     );
+  }
+
+  function handleAddSubtask() {
+    if (!newSubtaskTitle.trim()) return;
+
+    setSubtasks(prev => [
+      ...prev,
+      {
+        id: `subtask_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+        title: newSubtaskTitle.trim(),
+      },
+    ]);
+
+    setNewSubtaskTitle('');
+  }
+
+  function handleDeleteSubtask(id: string) {
+    setSubtasks(prev => prev.filter(st => st.id !== id));
   }
 
   const sortedCats = [...categories].sort((a, b) => a.order - b.order);
@@ -317,6 +338,88 @@ export default function HabitFormScreen() {
             multiline
           />
         </View>
+
+        <View style={styles.field}>
+          <Text style={[styles.label, { color: colors.mutedForeground }]}>
+            Subtasks (optional)
+          </Text>
+
+          <View
+            style={[
+              styles.subtaskInputRow,
+              {
+                borderColor: colors.border,
+                backgroundColor: colors.card,
+              },
+            ]}
+          >
+            <TextInput
+              value={newSubtaskTitle}
+              onChangeText={setNewSubtaskTitle}
+              placeholder="Add a subtask..."
+              placeholderTextColor={colors.mutedForeground}
+              style={[
+                styles.subtaskInput,
+                {
+                  color: colors.foreground,
+                },
+              ]}
+              returnKeyType="done"
+              onSubmitEditing={handleAddSubtask}
+            />
+
+            <TouchableOpacity
+              onPress={handleAddSubtask}
+              style={[
+                styles.subtaskAddButton,
+                {
+                  backgroundColor: colors.primary,
+                },
+              ]}
+            >
+              <Feather
+                name="plus"
+                size={18}
+                color="#fff"
+              />
+            </TouchableOpacity>
+          </View>
+
+          {subtasks.map(st => (
+            <View
+              key={st.id}
+              style={[
+                styles.subtaskRow,
+                {
+                  backgroundColor: colors.card,
+                  borderColor: colors.border,
+                },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.subtaskLabel,
+                  {
+                    color: colors.foreground,
+                  },
+                ]}
+              >
+                {st.title}
+              </Text>
+
+              <TouchableOpacity
+                onPress={() => handleDeleteSubtask(st.id)}
+              >
+                <Feather
+                  name="trash-2"
+                  size={16}
+                  color="#ef4444"
+                />
+              </TouchableOpacity>
+            </View>
+          ))}
+        </View>
+
       </ScrollView>
     </View>
   );
@@ -431,4 +534,47 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   repLabel: { fontSize: 13, fontFamily: 'Inter_500Medium' },
+
+  subtaskInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    marginTop: 8,
+    marginBottom: 12,
+  },
+
+  subtaskInput: {
+    flex: 1,
+    fontSize: 14,
+    fontFamily: 'Inter_400Regular',
+    paddingVertical: 10,
+  },
+
+  subtaskAddButton: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 8,
+  },
+
+  subtaskRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 6,
+  },
+
+  subtaskLabel: {
+    flex: 1,
+    fontSize: 14,
+    fontFamily: 'Inter_400Regular',
+  },
+
 });

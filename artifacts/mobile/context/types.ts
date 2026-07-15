@@ -1,4 +1,4 @@
-export type LogStatus = 'completed' | 'missed' | 'frozen';
+export type LogStatus = 'completed' | 'missed' | 'frozen' | 'in_progress';
 
 export type HabitFrequency =
   | 'daily'
@@ -18,6 +18,11 @@ export interface Repetition {
   type: RepetitionType;
   count?: number;
   endDate?: string;
+}
+
+export interface Subtask {
+  id: string;
+  title: string;
 }
 
 export interface Habit {
@@ -47,6 +52,7 @@ export interface Habit {
   repetition?: Repetition;
 
   color?: string;
+  subtasks?: Subtask[];
 }
 
 export interface Category {
@@ -63,6 +69,7 @@ export interface HabitLog {
   date: string;
   status: LogStatus;
   completedAt?: string;
+  completedSubtasks?: string[];
 }
 
 export interface AppSettings {
@@ -141,4 +148,12 @@ export interface WidgetCache {
     name: string;
     completed: boolean;
   }>;
+}
+
+
+export interface TodayTask {
+  id: string;
+  title: string;
+  completed: boolean;
+  createdAt: string;
 }

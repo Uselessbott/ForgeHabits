@@ -32,7 +32,7 @@ import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import com.forgehabits.app.MainActivity
-import com.forgehabits.app.WidgetHabit
+import com.forgehabits.app.WidgetTodayTask
 import com.forgehabits.app.WidgetSnapshotRepository
 
 class TasksGlanceWidget : GlanceAppWidget() {
@@ -43,9 +43,7 @@ class TasksGlanceWidget : GlanceAppWidget() {
         provideContent {
             GlanceTheme {
                 TasksContent(
-                    completed = snapshot?.completed ?: 0,
-                    total = snapshot?.total ?: 0,
-                    habits = snapshot?.habits ?: emptyList()
+                    todayTasks = snapshot?.todayTasks ?: emptyList()
                 )
             }
         }
@@ -53,7 +51,7 @@ class TasksGlanceWidget : GlanceAppWidget() {
 }
 
 @Composable
-private fun TasksContent(completed: Int, total: Int, habits: List<WidgetHabit>) {
+private fun TasksContent(todayTasks: List<WidgetTodayTask>) {
     val context = LocalContext.current
     val openAppIntent = Intent(context, MainActivity::class.java)
 
@@ -64,14 +62,14 @@ private fun TasksContent(completed: Int, total: Int, habits: List<WidgetHabit>) 
             .padding(12.dp)
     ) {
         Text(
-            text = "Today ($completed/$total)",
+            text = "Quick Tasks",
             style = GlanceTypography.Title
         )
         Spacer(GlanceModifier.height(6.dp))
         // LazyColumn = real, native scrolling - shows every habit, no
         // truncation, no ListWidget-collection-service headaches.
         LazyColumn(modifier = GlanceModifier.fillMaxWidth()) {
-            items(habits, itemId = { it.id.hashCode().toLong() }) { habit ->
+            items(todayTasks, itemId = { it.id.hashCode().toLong() }) { task ->
                 Row(
                     modifier = GlanceModifier
                         .fillMaxWidth()
@@ -82,13 +80,13 @@ private fun TasksContent(completed: Int, total: Int, habits: List<WidgetHabit>) 
                     Box(
                         modifier = GlanceModifier
                             .size(16.dp)
-                            .background(if (habit.completed) GlanceColors.ACCENT else GlanceColors.BG)
+                            .background(if (task.completed) GlanceColors.ACCENT else GlanceColors.BG)
                             .cornerRadius(4.dp)
                     ) {}
                     Spacer(GlanceModifier.width(8.dp))
                     Text(
-                        text = habit.name,
-                        style = TextStyle(color = if (habit.completed) GlanceColors.SUBTEXT else GlanceColors.TEXT)
+                        text = task.title,
+                        style = TextStyle(color = if (task.completed) GlanceColors.SUBTEXT else GlanceColors.TEXT)
                     )
                 }
             }

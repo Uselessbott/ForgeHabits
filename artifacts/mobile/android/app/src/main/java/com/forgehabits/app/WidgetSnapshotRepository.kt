@@ -19,6 +19,12 @@ data class WidgetHeatmapDay(
     val hasData: Boolean
 )
 
+data class WidgetTodayTask(
+    val id: String,
+    val title: String,
+    val completed: Boolean
+)
+
 data class WidgetSnapshot(
     val version: Int,
     val updatedAt: String,
@@ -28,7 +34,8 @@ data class WidgetSnapshot(
     val remaining: Int,
     val streak: Int,
     val habits: List<WidgetHabit>,
-    val heatmap: List<WidgetHeatmapDay>
+    val heatmap: List<WidgetHeatmapDay>,
+    val todayTasks: List<WidgetTodayTask>
 )
 
 // Data-layer only: writes come from the React Native bridge (JS is the one
@@ -90,6 +97,16 @@ object WidgetSnapshotRepository {
                 )
             }
 
+            val todayTasksArray = obj.optJSONArray("todayTasks") ?: JSONArray()
+            val todayTasks = (0 until todayTasksArray.length()).mapNotNull { i ->
+                val t = todayTasksArray.optJSONObject(i) ?: return@mapNotNull null
+                WidgetTodayTask(
+                    id = t.optString("id", ""),
+                    title = t.optString("title", ""),
+                    completed = t.optBoolean("completed", false)
+                )
+            }
+
             WidgetSnapshot(
                 version = version,
                 updatedAt = obj.optString("updatedAt", ""),
@@ -99,7 +116,8 @@ object WidgetSnapshotRepository {
                 remaining = obj.optInt("remaining", 0),
                 streak = obj.optInt("streak", 0),
                 habits = habits,
-                heatmap = heatmap
+                heatmap = heatmap,
+                todayTasks = todayTasks
             )
         } catch (e: Exception) {
             // Malformed JSON from a corrupted write or a future/incompatible
