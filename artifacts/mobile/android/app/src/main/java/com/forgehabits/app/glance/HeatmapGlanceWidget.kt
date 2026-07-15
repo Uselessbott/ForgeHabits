@@ -61,13 +61,13 @@ private fun HeatmapContent(streak: Int, heatmap: List<WidgetHeatmapDay>, updated
 
     val paddingPx = 12f
     val headerHeight = 24f
-    val gap = 3f
+    val gap = 2f
     val availableWidth = (size.width.value - paddingPx * 2).coerceAtLeast(40f)
     val availableHeight = (size.height.value - paddingPx * 2 - headerHeight).coerceAtLeast(30f)
     val cols = weeks.size.coerceAtLeast(1)
     val cellFromWidth = (availableWidth - gap * (cols - 1)) / cols
     val cellFromHeight = (availableHeight - gap * (rows - 1)) / rows
-    val cellSize = minOf(cellFromWidth, cellFromHeight).coerceAtLeast(4f)
+    val cellSize = minOf(cellFromWidth, cellFromHeight).coerceIn(4f, 16f)
 
     Column(
         modifier = GlanceModifier
@@ -92,7 +92,7 @@ private fun HeatmapContent(streak: Int, heatmap: List<WidgetHeatmapDay>, updated
                         week.forEachIndexed { index, day ->
                             val cellColor = when {
                                 !day.hasData -> GlanceColors.TRACK
-                                day.pct <= 0.0 -> GlanceColors.ACCENT_DIM
+                                day.pct <= 0.0 -> GlanceColors.TRACK
                                 day.pct < 0.25 -> GlanceColors.ACCENT_DIM
                                 day.pct < 0.50 -> GlanceColors.ACCENT_MID
                                 day.pct < 1.0 -> GlanceColors.ACCENT
