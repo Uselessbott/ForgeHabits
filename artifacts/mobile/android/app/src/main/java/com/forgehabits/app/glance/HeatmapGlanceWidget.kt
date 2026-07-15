@@ -60,7 +60,8 @@ private fun HeatmapContent(streak: Int, heatmap: List<WidgetHeatmapDay>, updated
 
     // TEMP DEBUG - remove after confirming hasData counts on device
     val hasDataCount = recent.count { it.hasData }
-    val dbgText = "n=${recent.size} hasData=${hasDataCount} t=${updatedAt.takeLast(12)}"
+    val todayPct = recent.lastOrNull()?.pct
+    val dbgText = "n=${recent.size} hasData=${hasDataCount} pct=${todayPct} t=${updatedAt.takeLast(8)}"
 
     val paddingPx = 12f
     val headerHeight = 24f
