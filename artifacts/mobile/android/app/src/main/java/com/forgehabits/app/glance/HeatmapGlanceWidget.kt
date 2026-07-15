@@ -40,7 +40,8 @@ class HeatmapGlanceWidget : GlanceAppWidget() {
             GlanceTheme {
                 HeatmapContent(
                     streak = snapshot?.streak ?: 0,
-                    heatmap = snapshot?.heatmap ?: emptyList()
+                    heatmap = snapshot?.heatmap ?: emptyList(),
+                    updatedAt = snapshot?.updatedAt ?: "none"
                 )
             }
         }
@@ -48,7 +49,7 @@ class HeatmapGlanceWidget : GlanceAppWidget() {
 }
 
 @Composable
-private fun HeatmapContent(streak: Int, heatmap: List<WidgetHeatmapDay>) {
+private fun HeatmapContent(streak: Int, heatmap: List<WidgetHeatmapDay>, updatedAt: String) {
     val context = LocalContext.current
     val size = LocalSize.current
     val openAppIntent = Intent(context, MainActivity::class.java)
@@ -59,7 +60,7 @@ private fun HeatmapContent(streak: Int, heatmap: List<WidgetHeatmapDay>) {
 
     // TEMP DEBUG - remove after confirming hasData counts on device
     val hasDataCount = recent.count { it.hasData }
-    val dbgText = "n=${recent.size} hasData=${hasDataCount}"
+    val dbgText = "n=${recent.size} hasData=${hasDataCount} t=${updatedAt.takeLast(12)}"
 
     val paddingPx = 12f
     val headerHeight = 24f

@@ -8,9 +8,9 @@ import androidx.glance.unit.ColorProvider
 object GlanceColors {
     val BG = ColorProvider(Color(0xFF080808))
     val ACCENT = ColorProvider(Color(0xFFE67E00))
-    val ACCENT_STRONG = ColorProvider(Color(0xFFFFA000))
-    val ACCENT_DIM = ColorProvider(Color(0xFF5B3208))
-    val ACCENT_MID = ColorProvider(Color(0xFFA85A00))
+    val ACCENT_STRONG = ColorProvider(Color(0xFFFF8C00))
+    val ACCENT_DIM = ColorProvider(Color(0xFF3D2410))
+    val ACCENT_MID = ColorProvider(Color(0xFF8A4A0A))
     val TEXT = ColorProvider(Color(0xFFF0F0F0))
     val SUBTEXT = ColorProvider(Color(0xFF969696))
     val TRACK = ColorProvider(Color(0xFF1C1C1C))
