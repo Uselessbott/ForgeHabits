@@ -370,10 +370,12 @@ export default function HabitFormScreen() {
 
             <TouchableOpacity
               onPress={handleAddSubtask}
+              disabled={!newSubtaskTitle.trim()}
               style={[
                 styles.subtaskAddButton,
                 {
                   backgroundColor: colors.primary,
+                  opacity: newSubtaskTitle.trim() ? 1 : 0.45,
                 },
               ]}
             >
@@ -396,16 +398,28 @@ export default function HabitFormScreen() {
                 },
               ]}
             >
-              <Text
+              <TextInput
+                value={st.title}
+                onChangeText={text =>
+                  setSubtasks(prev =>
+                    prev.map(s =>
+                      s.id === st.id
+                        ? { ...s, title: text }
+                        : s
+                    )
+                  )
+                }
+                placeholder="Subtask"
+                placeholderTextColor={colors.mutedForeground}
                 style={[
                   styles.subtaskLabel,
                   {
                     color: colors.foreground,
+                    flex: 1,
+                    paddingVertical: 2,
                   },
                 ]}
-              >
-                {st.title}
-              </Text>
+              />
 
               <TouchableOpacity
                 onPress={() => handleDeleteSubtask(st.id)}

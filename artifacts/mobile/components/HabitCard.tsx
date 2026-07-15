@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import React, {useState, useRef, useEffect} from 'react';
+import {View, Text, TouchableOpacity, StyleSheet, Animated, Modal, TextInput} from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Feather } from '@expo/vector-icons';
 import { useColors } from '@/hooks/useColors';
@@ -14,6 +14,8 @@ interface HabitCardProps {
   onLongPress?: () => void;
   weeklyProgress?: { completed: number; target: number };
   onToggleSubtask?: (subtaskId: string) => void;
+  onRenameSubtask?: (subtaskId: string, title: string) => void;
+  onDeleteSubtask?: (subtaskId: string) => void;
 }
 
 export function HabitCard({
@@ -25,8 +27,13 @@ export function HabitCard({
   onLongPress,
   weeklyProgress,
   onToggleSubtask,
+  onRenameSubtask,
+  onDeleteSubtask,
 }: HabitCardProps) {
   const colors = useColors();
+  const [showSubtasks, setShowSubtasks] = useState(false);
+  const [editingSubtask, setEditingSubtask] = useState<Subtask | null>(null);
+  const [editingTitle, setEditingTitle] = useState('');
   const hasSubtasks = (habit.subtasks?.length ?? 0) > 0;
 
   const isCompleted = hasSubtasks
@@ -97,7 +104,26 @@ export function HabitCard({
         ) : null}
 
         {habit.subtasks?.length ? (
-          <View style={styles.subtasksContainer}>
+          <>
+            <TouchableOpacity
+              style={styles.subtaskToggle}
+              activeOpacity={0.7}
+              onPress={() => setShowSubtasks(!showSubtasks)}
+            >
+              <Text
+                style={[
+                  styles.subtaskToggleText,
+                  { color: colors.primary }
+                ]}
+              >
+                {showSubtasks
+                  ? "▲ Hide subtasks"
+                  : `▼ See ${habit.subtasks.length} subtasks`}
+              </Text>
+            </TouchableOpacity>
+
+            {showSubtasks && (
+              <View style={styles.subtasksContainer}>
             {habit.subtasks.map(subtask => {
               const checked =
                 log?.completedSubtasks?.includes(subtask.id) ?? false;
@@ -109,6 +135,10 @@ export function HabitCard({
                   disabled={!isToday}
                   activeOpacity={0.7}
                   onPress={() => onToggleSubtask?.(subtask.id)}
+                  onLongPress={() => {
+                    setEditingSubtask(subtask);
+                    setEditingTitle(subtask.title);
+                  }}
                 >
                   <View
                     style={[
@@ -144,8 +174,120 @@ export function HabitCard({
               );
             })}
           </View>
+            )}
+          </>
         ) : null}
       </View>
+
+
+      <Modal
+        visible={editingSubtask !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setEditingSubtask(null)}
+      >
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: "rgba(0,0,0,0.45)",
+            justifyContent: "center",
+            padding: 24,
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: colors.card,
+              borderRadius: 16,
+              padding: 18,
+            }}
+          >
+            <Text
+              style={{
+                color: colors.foreground,
+                fontSize: 18,
+                fontFamily: "Inter_600SemiBold",
+                marginBottom: 14,
+              }}
+            >
+              Edit subtask
+            </Text>
+
+            <TextInput
+              value={editingTitle}
+              onChangeText={setEditingTitle}
+              placeholder="Subtask"
+              placeholderTextColor={colors.mutedForeground}
+              style={{
+                color: colors.foreground,
+                borderWidth: 1,
+                borderColor: colors.border,
+                borderRadius: 10,
+                paddingHorizontal: 12,
+                paddingVertical: 10,
+                marginBottom: 18,
+              }}
+            />
+
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "flex-end",
+                gap: 10,
+              }}
+            >
+
+              <TouchableOpacity
+                onPress={() => setEditingSubtask(null)}
+              >
+                <Text style={{color: colors.mutedForeground}}>
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => {
+                  if (editingSubtask && editingTitle.trim()) {
+                    onRenameSubtask?.(
+                      editingSubtask.id,
+                      editingTitle.trim()
+                    );
+                  }
+                  setEditingSubtask(null);
+                }}
+              >
+                <Text
+                  style={{
+                    color: colors.primary,
+                    fontWeight: "600",
+                  }}
+                >
+                  Save
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => {
+                  if (editingSubtask) {
+                    onDeleteSubtask?.(editingSubtask.id);
+                  }
+                  setEditingSubtask(null);
+                }}
+              >
+                <Text
+                  style={{
+                    color: "#ef4444",
+                    fontWeight: "600",
+                  }}
+                >
+                  Delete
+                </Text>
+              </TouchableOpacity>
+
+            </View>
+
+          </View>
+        </View>
+      </Modal>
 
       {streak > 0 && (
         <View style={styles.streakRow}>
@@ -212,8 +354,17 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: 'Inter_600SemiBold',
   },
+  subtaskToggle: {
+    marginTop: 6,
+    marginBottom: 6,
+  },
+  subtaskToggleText: {
+    fontSize: 12,
+    fontFamily: 'Inter_500Medium',
+  },
   subtasksContainer: {
     marginTop: 6,
+    marginLeft: 8,
     gap: 6,
   },
   subtaskRow: {

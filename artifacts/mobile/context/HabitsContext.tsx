@@ -78,6 +78,11 @@ interface HabitsContextType {
   addSubtask: (habitId: string, title: string) => Promise<void>;
   toggleSubtask: (habitId: string, subtaskId: string, date: string) => Promise<void>;
   deleteSubtask: (habitId: string, subtaskId: string) => Promise<void>;
+  renameSubtask: (
+    habitId: string,
+    subtaskId: string,
+    newTitle: string,
+  ) => Promise<void>;
   applyStreakFreeze: () => Promise<boolean>;
   updateSettings: (updates: Partial<AppSettings>) => void;
   resetAllData: () => Promise<void>;
@@ -260,12 +265,17 @@ useEffect(() => {
   }, [isLoading]);
 
 
-  async function refreshWidget(habitsOverride?: Habit[], logsOverride?: HabitLog[]) {
+  async function refreshWidget(
+    habitsOverride?: Habit[],
+    logsOverride?: HabitLog[],
+    todayTasksOverride?: TodayTask[]
+  ) {
     if (Platform.OS !== 'android') return;
     try {
 
     const h = habitsOverride ?? habits;
     const l = logsOverride ?? logs;
+    const tt = todayTasksOverride ?? todayTasks;
     const today = getTodayStr();
     const scheduled = h.filter(hb => !hb.archived && isHabitScheduledForDate(hb, today));
     const total = scheduled.length;
@@ -300,17 +310,29 @@ useEffect(() => {
     const heatmapDays = heatmapWeeks * 7;
     const historyStart = addDays(today, -(heatmapDays - 1));
     const history: { date: string; pct: number; hasData: boolean }[] = [];
+
     for (let i = 0; i < heatmapDays; i++) {
       const ds = addDays(historyStart, i);
       const scheduledForDay = h.filter(hb => !hb.archived && isHabitScheduledForDate(hb, ds));
-      const totalForDay = scheduledForDay.length;
-      const completedForDay = scheduledForDay.filter(hb =>
-        l.some(log => log.habitId === hb.id && log.date === ds && (log.status === 'completed' || log.status === 'frozen'))
-      ).length;
+
+      let totalWorkUnits = 0;
+      let completedWorkUnits = 0;
+
+      scheduledForDay.forEach(hb => {
+        const log = l.find(
+          lg => lg.habitId === hb.id && lg.date === ds
+        );
+
+        const work = getHabitWorkUnits(hb, log);
+
+        totalWorkUnits += work.total;
+        completedWorkUnits += work.completed;
+      });
+
       history.push({
         date: ds,
-        pct: totalForDay > 0 ? completedForDay / totalForDay : 0,
-        hasData: totalForDay > 0,
+        pct: totalWorkUnits > 0 ? completedWorkUnits / totalWorkUnits : 0,
+        hasData: totalWorkUnits > 0,
       });
     }
 
@@ -327,7 +349,11 @@ useEffect(() => {
         remaining,
         streak,
         habits: habitList,
-        todayTasks: todayTasks.map(t => ({ id: t.id, title: t.title, completed: t.completed })),
+        todayTasks: tt.map(t => ({
+          id: t.id,
+          title: t.title,
+          completed: t.completed,
+        })),
         heatmap: history,
       };
       console.log("ForgeWidget: writeSnapshot", snapshot.completed, snapshot.total, snapshot.streak);
@@ -364,7 +390,7 @@ useEffect(() => {
   async function setTodayTasksAndSave(tasks: TodayTask[]) {
     setTodayTasks(tasks);
     await save(KEYS.TODAY_TASKS, tasks);
-    await refreshWidget(habits, logs);
+    await refreshWidget(habits, logs, tasks);
   }
 
   async function createHabit(data: Omit<Habit, 'id' | 'createdAt' | 'archived' | 'sortOrder'>) {
@@ -609,6 +635,30 @@ useEffect(() => {
     await setLogsAndSave(updatedLogs);
 }
 
+
+  async function renameSubtask(
+    habitId: string,
+    subtaskId: string,
+    newTitle: string,
+  ) {
+    if (!newTitle.trim()) return;
+
+    const updatedHabits = habits.map(h => {
+      if (h.id !== habitId) return h;
+
+      return {
+        ...h,
+        subtasks: (h.subtasks ?? []).map(st =>
+          st.id === subtaskId
+            ? { ...st, title: newTitle.trim() }
+            : st
+        ),
+      };
+    });
+
+    await setHabitsAndSave(updatedHabits);
+  }
+
   async function addTodayTask(title: string) {
     if (!title.trim()) return;
     await setTodayTasksAndSave([
@@ -783,6 +833,24 @@ useEffect(() => {
     return { completed, target: habit.weeklyTarget ?? 0 };
   }
 
+  function getHabitWorkUnits(habit: Habit, log: HabitLog | undefined): { completed: number; total: number } {
+    if (!habit.subtasks || habit.subtasks.length === 0) {
+      return {
+        completed: (log?.status === 'completed' || log?.status === 'frozen') ? 1 : 0,
+        total: 1,
+      };
+    }
+
+    const completedCount = habit.subtasks.filter(st =>
+      log?.completedSubtasks?.includes(st.id)
+    ).length;
+
+    return {
+      completed: completedCount,
+      total: habit.subtasks.length,
+    };
+  }
+
   function getCalendarDay(date: string) {
     const today = getTodayStr();
     if (date > today) return { color: 'none' as const, completed: 0, total: 0, missed: 0, percentage: 0, streak: 0 };
@@ -792,11 +860,45 @@ useEffect(() => {
       const log = getLogForHabit(h.id, date);
       return log?.status === 'completed' || log?.status === 'frozen';
     }).length;
+
     const missed = scheduled.length - completed;
-    const percentage = Math.round((completed / scheduled.length) * 100);
-    const color = completed === 0 ? 'red' as const : completed < scheduled.length ? 'yellow' as const : 'green' as const;
-    const streak = scheduled.reduce((max, h) => Math.max(max, getCurrentStreak(h, logs)), 0);
-    return { color, completed, total: scheduled.length, missed, percentage, streak };
+
+    let totalWorkUnits = 0;
+    let completedWorkUnits = 0;
+
+    scheduled.forEach(h => {
+      const log = getLogForHabit(h.id, date);
+      const work = getHabitWorkUnits(h, log);
+
+      totalWorkUnits += work.total;
+      completedWorkUnits += work.completed;
+    });
+
+    const percentage =
+      totalWorkUnits > 0
+        ? Math.round((completedWorkUnits / totalWorkUnits) * 100)
+        : 0;
+
+    const color =
+      completed === 0
+        ? 'red' as const
+        : completed < scheduled.length
+        ? 'yellow' as const
+        : 'green' as const;
+
+    const streak = scheduled.reduce(
+      (max, h) => Math.max(max, getCurrentStreak(h, logs)),
+      0
+    );
+
+    return {
+      color,
+      completed,
+      total: scheduled.length,
+      missed,
+      percentage,
+      streak,
+    };
   }
 
   function getLifetimeStats(): LifetimeStats {
@@ -966,6 +1068,7 @@ useEffect(() => {
       addSubtask,
       toggleSubtask,
       deleteSubtask,
+      renameSubtask,
       applyStreakFreeze,
       updateSettings,
       resetAllData,

@@ -44,6 +44,8 @@ export default function TodayScreen() {
     toggleTodayTask,
     deleteTodayTask,
     toggleSubtask,
+    renameSubtask,
+    deleteSubtask,
   } = useHabits();
 
   const today = getTodayStr();
