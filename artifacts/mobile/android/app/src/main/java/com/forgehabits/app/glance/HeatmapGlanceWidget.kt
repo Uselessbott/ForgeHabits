@@ -58,10 +58,6 @@ private fun HeatmapContent(streak: Int, heatmap: List<WidgetHeatmapDay>, updated
     val recent = heatmap.takeLast(50)
     val weeks = recent.chunked(rows)
 
-    // TEMP DEBUG - remove after confirming hasData counts on device
-    val hasDataCount = recent.count { it.hasData }
-    val todayPct = recent.lastOrNull()?.pct
-    val dbgText = "n=${recent.size} hasData=${hasDataCount} pct=${todayPct} t=${updatedAt.takeLast(8)}"
 
     val paddingPx = 12f
     val headerHeight = 24f
@@ -83,10 +79,6 @@ private fun HeatmapContent(streak: Int, heatmap: List<WidgetHeatmapDay>, updated
         Text(
             text = "$streak day streak",
             style = TextStyle(color = GlanceColors.TEXT, fontWeight = FontWeight.Bold)
-        )
-        Text(
-            text = dbgText,
-            style = TextStyle(color = GlanceColors.SUBTEXT)
         )
         Box(modifier = GlanceModifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Row {
