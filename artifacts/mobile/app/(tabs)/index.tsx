@@ -231,6 +231,12 @@ export default function TodayScreen() {
                         onToggleSubtask={(subtaskId) =>
                           toggleSubtask(habit.id, subtaskId, today)
                         }
+                        onRenameSubtask={(subtaskId, title) =>
+                          renameSubtask(habit.id, subtaskId, title)
+                        }
+                        onDeleteSubtask={(subtaskId) =>
+                          deleteSubtask(habit.id, subtaskId)
+                        }
                       />
                     );
                   })}
@@ -256,6 +262,12 @@ export default function TodayScreen() {
                         onToggle={() => handleToggle(habit.id)}
                         onToggleSubtask={(subtaskId) =>
                           toggleSubtask(habit.id, subtaskId, today)
+                        }
+                        onRenameSubtask={(subtaskId, title) =>
+                          renameSubtask(habit.id, subtaskId, title)
+                        }
+                        onDeleteSubtask={(subtaskId) =>
+                          deleteSubtask(habit.id, subtaskId)
                         }
                       />
                     );
