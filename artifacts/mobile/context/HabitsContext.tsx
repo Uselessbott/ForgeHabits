@@ -176,7 +176,12 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
             await scheduleMidnightReset();
           }
 
-          await refreshWidget(loadedHabits, newLogs);
+          await refreshWidget(
+            loadedHabits,
+            newLogs,
+            wasReset ? [] : loadedTodayTasks,
+            finalSettings
+          );
         }
       } catch {
         setCategories(DEFAULT_CATEGORIES);
@@ -211,7 +216,12 @@ useEffect(() => {
           setSettings(updatedSettings);
           await save(KEYS.LOGS, resetLogs);
           await save(KEYS.SETTINGS, updatedSettings);
-          await refreshWidget(habits, resetLogs);
+          await refreshWidget(
+            habits,
+            resetLogs,
+            [],
+            updatedSettings
+          );
         }
 
 

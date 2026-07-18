@@ -26,15 +26,17 @@ SplashScreen.preventAutoHideAsync();
 
 function RootLayoutNav() {
   const colors = useColors();
-  const { updateSettings } = useHabits();
+  const { updateSettings, isLoading } = useHabits();
 
   useEffect(() => {
+    if (isLoading) return;
+
     setupNotificationChannel().then(() => {
       requestNotificationPermissions().then(granted => {
         updateSettings({ notificationsEnabled: granted });
       });
     });
-  }, []);
+  }, [isLoading]);
 
   return (
     <Stack
