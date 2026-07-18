@@ -407,6 +407,7 @@ useEffect(() => {
     await refreshWidget(habits, l);
   }
   async function setSettingsAndSave(s: AppSettings) {
+    console.log("SAVE SETTINGS", s);
     setSettings(s);
     await save(KEYS.SETTINGS, s);
     await refreshWidget(habits, logs, todayTasks, s);
@@ -737,6 +738,12 @@ useEffect(() => {
 
   function updateSettings(updates: Partial<AppSettings>) {
     const ns = { ...settings, ...updates };
+    console.log(
+      "UPDATE SETTINGS",
+      "current=", settings,
+      "updates=", updates,
+      "next=", ns
+    );
     setSettingsAndSave(ns);
     if (updates.monkModeEnabled === true) {
       const today = getTodayStr();
