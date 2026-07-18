@@ -44,13 +44,9 @@ class CombinedGlanceWidget : GlanceAppWidget() {
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val snapshot = WidgetSnapshotRepository.read(context)
-        val colors = GlanceColors(
-            theme = snapshot?.theme ?: "super_amoled",
-            accentKey = snapshot?.accentColor ?: "orange"
-        )
         provideContent {
             GlanceTheme {
-                CombinedContent(colors = colors, 
+                CombinedContent(
                     completed = snapshot?.completed ?: 0,
                     total = snapshot?.total ?: 0,
                     streak = snapshot?.streak ?: 0,
@@ -62,7 +58,7 @@ class CombinedGlanceWidget : GlanceAppWidget() {
 }
 
 @Composable
-private fun CombinedContent(colors: GlanceColors, completed: Int, total: Int, streak: Int, habits: List<WidgetHabit>) {
+private fun CombinedContent(completed: Int, total: Int, streak: Int, habits: List<WidgetHabit>) {
     val context = LocalContext.current
     val openAppIntent = Intent(context, MainActivity::class.java)
     val pct = if (total > 0) completed.toFloat() / total.toFloat() else 0f
@@ -70,7 +66,7 @@ private fun CombinedContent(colors: GlanceColors, completed: Int, total: Int, st
     val ringSizeDp = (size.height.value * 0.35f).coerceIn(36f, 72f)
     val ringSizePx = (ringSizeDp * context.resources.displayMetrics.density).toInt().coerceAtLeast(1)
     val ringBitmap = remember(pct, ringSizePx) {
-        ProgressRingRenderer.render(ringSizePx, pct, colors.ACCENT_ARGB, colors.TRACK_ARGB)
+        ProgressRingRenderer.render(ringSizePx, pct, GlanceColors.ACCENT_ARGB, GlanceColors.TRACK_ARGB)
     }
 
     val remainingHabits = habits.filter { !it.completed }
@@ -80,7 +76,7 @@ private fun CombinedContent(colors: GlanceColors, completed: Int, total: Int, st
     Column(
         modifier = GlanceModifier
             .fillMaxSize()
-            .background(colors.BG)
+            .background(GlanceColors.BG)
             .padding(GlanceDimensions.WidgetPadding)
     ) {
         Row(
@@ -132,7 +128,7 @@ private fun CombinedContent(colors: GlanceColors, completed: Int, total: Int, st
                         Box(
                             modifier = GlanceModifier
                                 .size(GlanceDimensions.CheckboxSize)
-                                .background(colors.TRACK)
+                                .background(GlanceColors.TRACK)
                                 .cornerRadius(GlanceDimensions.CornerRadius)
                         ) {}
                         Spacer(GlanceModifier.width(6.dp))

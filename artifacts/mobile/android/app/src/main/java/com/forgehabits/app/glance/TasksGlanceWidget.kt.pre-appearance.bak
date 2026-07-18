@@ -40,13 +40,9 @@ class TasksGlanceWidget : GlanceAppWidget() {
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val snapshot = WidgetSnapshotRepository.read(context)
-        val colors = GlanceColors(
-            theme = snapshot?.theme ?: "super_amoled",
-            accentKey = snapshot?.accentColor ?: "orange"
-        )
         provideContent {
             GlanceTheme {
-                TasksContent(colors = colors, 
+                TasksContent(
                     todayTasks = snapshot?.todayTasks ?: emptyList()
                 )
             }
@@ -55,14 +51,14 @@ class TasksGlanceWidget : GlanceAppWidget() {
 }
 
 @Composable
-private fun TasksContent(colors: GlanceColors, todayTasks: List<WidgetTodayTask>) {
+private fun TasksContent(todayTasks: List<WidgetTodayTask>) {
     val context = LocalContext.current
     val openAppIntent = Intent(context, MainActivity::class.java)
 
     Column(
         modifier = GlanceModifier
             .fillMaxSize()
-            .background(colors.BG)
+            .background(GlanceColors.BG)
             .padding(12.dp)
     ) {
         Text(
@@ -84,13 +80,13 @@ private fun TasksContent(colors: GlanceColors, todayTasks: List<WidgetTodayTask>
                     Box(
                         modifier = GlanceModifier
                             .size(16.dp)
-                            .background(if (task.completed) colors.ACCENT else colors.BG)
+                            .background(if (task.completed) GlanceColors.ACCENT else GlanceColors.BG)
                             .cornerRadius(4.dp)
                     ) {}
                     Spacer(GlanceModifier.width(8.dp))
                     Text(
                         text = task.title,
-                        style = TextStyle(color = if (task.completed) colors.SUBTEXT else colors.TEXT)
+                        style = TextStyle(color = if (task.completed) GlanceColors.SUBTEXT else GlanceColors.TEXT)
                     )
                 }
             }

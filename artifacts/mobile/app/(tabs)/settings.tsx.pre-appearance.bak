@@ -9,7 +9,6 @@ import { Feather } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useColors } from '@/hooks/useColors';
-import { ACCENT_KEYS, ACCENT_MAP, type AccentKey } from '@/constants/colors';
 import { useHabits } from '@/context/HabitsContext';
 import {
   requestNotificationPermissions,
@@ -182,62 +181,6 @@ export default function ProfileScreen() {
                 {canUseStreakFreeze() ? 'Ready' : 'Used'}
               </Text>
             </View>
-          </View>
-        </View>
-
-        {/* Appearance */}
-        <Text style={[styles.sectionTitle, { color: colors.mutedForeground }]}>APPEARANCE</Text>
-        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border, padding: 16 }]}>
-          <Text style={[styles.settingLabel, { color: colors.foreground, marginBottom: 12 }]}>Theme</Text>
-          {(['super_amoled', 'light'] as const).map((t) => (
-            <TouchableOpacity
-              key={t}
-              onPress={() => updateSettings({ theme: t })}
-              style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}
-              activeOpacity={0.7}
-            >
-              <View style={{
-                width: 20,
-                height: 20,
-                borderRadius: 10,
-                borderWidth: 2,
-                borderColor: settings.theme === t ? colors.primary : colors.border,
-                justifyContent: 'center',
-                alignItems: 'center',
-                marginRight: 10,
-              }}>
-                {settings.theme === t && (
-                  <View style={{
-                    width: 10,
-                    height: 10,
-                    borderRadius: 5,
-                    backgroundColor: colors.primary,
-                  }} />
-                )}
-              </View>
-              <Text style={{ color: colors.foreground, fontSize: 14, fontFamily: 'Inter_500Medium' }}>
-                {t === 'super_amoled' ? 'Super AMOLED' : 'Light'}
-              </Text>
-            </TouchableOpacity>
-          ))}
-          <View style={{ height: 16 }} />
-          <Text style={[styles.settingLabel, { color: colors.foreground, marginBottom: 12 }]}>Accent Color</Text>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-            {ACCENT_KEYS.map((accent) => (
-              <TouchableOpacity
-                key={accent}
-                onPress={() => updateSettings({ accentColor: accent } as any)}
-                style={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: 16,
-                  backgroundColor: ACCENT_MAP[accent],
-                  borderWidth: 2,
-                  borderColor: (settings as any).accentColor === accent ? colors.foreground : 'transparent',
-                }}
-                activeOpacity={0.7}
-              />
-            ))}
           </View>
         </View>
 

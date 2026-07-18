@@ -42,8 +42,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   notificationsEnabled: false,
   lastResetDate: '',
   lastWeeklyReviewDate: '',
-  theme: 'super_amoled',
-  accentColor: 'orange',
+  theme: 'dark',
 };
 
 const DEFAULT_CATEGORIES: Category[] = [
@@ -137,13 +136,6 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
         const loadedCategories: Category[] = c ? JSON.parse(c) : DEFAULT_CATEGORIES;
         const loadedLogs: HabitLog[] = l ? JSON.parse(l) : [];
         const loadedSettings: AppSettings = s ? { ...DEFAULT_SETTINGS, ...JSON.parse(s) } : DEFAULT_SETTINGS;
-        // Migrate legacy 'dark' theme to 'super_amoled'
-        if (loadedSettings.theme === 'dark' as any) {
-          loadedSettings.theme = 'super_amoled' as any;
-        }
-        if (!(loadedSettings as any).accentColor) {
-          (loadedSettings as any).accentColor = 'orange';
-        }
         const loadedFreezes: StreakFreeze[] = f ? JSON.parse(f) : [];
         const loadedTodayTasks: TodayTask[] = tt ? JSON.parse(tt) : [];
         if (!c) save(KEYS.CATEGORIES, DEFAULT_CATEGORIES);
@@ -350,8 +342,6 @@ useEffect(() => {
     try {
       const snapshot = {
         version: 1,
-        theme: settings.theme,
-        accentColor: (settings as any).accentColor ?? 'orange',
         updatedAt: new Date().toISOString(),
         today,
         completed,

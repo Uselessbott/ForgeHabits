@@ -35,9 +35,7 @@ data class WidgetSnapshot(
     val streak: Int,
     val habits: List<WidgetHabit>,
     val heatmap: List<WidgetHeatmapDay>,
-    val todayTasks: List<WidgetTodayTask>,
-    val theme: String = "super_amoled",
-    val accentColor: String = "orange"
+    val todayTasks: List<WidgetTodayTask>
 )
 
 // Data-layer only: writes come from the React Native bridge (JS is the one
@@ -108,8 +106,6 @@ object WidgetSnapshotRepository {
                     completed = t.optBoolean("completed", false)
                 )
             }
-            val theme = obj.optString("theme", "super_amoled")
-            val accentColor = obj.optString("accentColor", "orange")
 
             WidgetSnapshot(
                 version = version,
@@ -121,9 +117,7 @@ object WidgetSnapshotRepository {
                 streak = obj.optInt("streak", 0),
                 habits = habits,
                 heatmap = heatmap,
-                todayTasks = todayTasks,
-                theme = theme,
-                accentColor = accentColor
+                todayTasks = todayTasks
             )
         } catch (e: Exception) {
             // Malformed JSON from a corrupted write or a future/incompatible

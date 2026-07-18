@@ -36,13 +36,9 @@ class HeatmapGlanceWidget : GlanceAppWidget() {
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val snapshot = WidgetSnapshotRepository.read(context)
-        val colors = GlanceColors(
-            theme = snapshot?.theme ?: "super_amoled",
-            accentKey = snapshot?.accentColor ?: "orange"
-        )
         provideContent {
             GlanceTheme {
-                HeatmapContent(colors = colors, 
+                HeatmapContent(
                     streak = snapshot?.streak ?: 0,
                     heatmap = snapshot?.heatmap ?: emptyList(),
                     updatedAt = snapshot?.updatedAt ?: "none"
@@ -53,7 +49,7 @@ class HeatmapGlanceWidget : GlanceAppWidget() {
 }
 
 @Composable
-private fun HeatmapContent(colors: GlanceColors, streak: Int, heatmap: List<WidgetHeatmapDay>, updatedAt: String) {
+private fun HeatmapContent(streak: Int, heatmap: List<WidgetHeatmapDay>, updatedAt: String) {
     val context = LocalContext.current
     val size = LocalSize.current
     val openAppIntent = Intent(context, MainActivity::class.java)
@@ -76,13 +72,13 @@ private fun HeatmapContent(colors: GlanceColors, streak: Int, heatmap: List<Widg
     Column(
         modifier = GlanceModifier
             .fillMaxSize()
-            .background(colors.BG)
+            .background(GlanceColors.BG)
             .padding(paddingPx.dp)
             .clickable(actionStartActivity(openAppIntent))
     ) {
         Text(
             text = "$streak day streak",
-            style = TextStyle(color = colors.TEXT, fontWeight = FontWeight.Bold)
+            style = TextStyle(color = GlanceColors.TEXT, fontWeight = FontWeight.Bold)
         )
         Box(modifier = GlanceModifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Row {
@@ -95,9 +91,9 @@ private fun HeatmapContent(colors: GlanceColors, streak: Int, heatmap: List<Widg
                     ) {
                         week.forEachIndexed { index, day ->
                             val cellColor = if (!day.hasData || day.pct <= 0.0) {
-                                colors.TRACK
+                                GlanceColors.TRACK
                             } else {
-                                interpolateAccentColor(day.pct.toFloat().coerceIn(0f, 1f), colors.ACCENT_ARGB)
+                                interpolateAccentColor(day.pct.toFloat().coerceIn(0f, 1f))
                             }
                             Box(
                                 modifier = GlanceModifier
