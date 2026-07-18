@@ -276,7 +276,8 @@ useEffect(() => {
   async function refreshWidget(
     habitsOverride?: Habit[],
     logsOverride?: HabitLog[],
-    todayTasksOverride?: TodayTask[]
+    todayTasksOverride?: TodayTask[],
+    settingsOverride?: AppSettings
   ) {
     if (Platform.OS !== 'android') return;
     try {
@@ -284,6 +285,7 @@ useEffect(() => {
     const h = habitsOverride ?? habits;
     const l = logsOverride ?? logs;
     const tt = todayTasksOverride ?? todayTasks;
+    const currentSettings = settingsOverride ?? settings;
     const today = getTodayStr();
     const scheduled = h.filter(hb => !hb.archived && isHabitScheduledForDate(hb, today));
     const total = scheduled.length;
@@ -350,8 +352,8 @@ useEffect(() => {
     try {
       const snapshot = {
         version: 1,
-        theme: settings.theme,
-        accentColor: (settings as any).accentColor ?? 'orange',
+        theme: currentSettings.theme,
+        accentColor: (currentSettings as any).accentColor ?? 'orange',
         updatedAt: new Date().toISOString(),
         today,
         completed,
@@ -394,7 +396,11 @@ useEffect(() => {
     await save(KEYS.LOGS, l);
     await refreshWidget(habits, l);
   }
-  function setSettingsAndSave(s: AppSettings) { setSettings(s); save(KEYS.SETTINGS, s); }
+  async function setSettingsAndSave(s: AppSettings) {
+    setSettings(s);
+    await save(KEYS.SETTINGS, s);
+    await refreshWidget(habits, logs, todayTasks, s);
+  }
   function setFreezesAndSave(f: StreakFreeze[]) { setFreezes(f); save(KEYS.FREEZES, f); }
 
   async function setTodayTasksAndSave(tasks: TodayTask[]) {
