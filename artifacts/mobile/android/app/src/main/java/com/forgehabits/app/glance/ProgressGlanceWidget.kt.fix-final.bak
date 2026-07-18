@@ -83,12 +83,12 @@ private fun ProgressContent(colors: GlanceColors, completed: Int, total: Int, st
                 )
                 Text(
                     text = "${(pct * 100).toInt()}%",
-                    style = TextStyle(color = colors.TEXT, fontWeight = FontWeight.Bold)
+                    style = GlanceTypography.Title
                 )
             }
-            Text(text = "$completed of $total", style = TextStyle(color = colors.SUBTEXT))
+            Text(text = "$completed of $total", style = GlanceTypography.Secondary)
             if (streak > 0) {
-                Text(text = "🔥 $streak day streak", style = TextStyle(color = colors.ACCENT, fontWeight = FontWeight.Bold))
+                Text(text = "🔥 $streak day streak", style = GlanceTypography.Accent)
             }
         }
     }

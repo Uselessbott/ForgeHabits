@@ -67,7 +67,7 @@ private fun TasksContent(colors: GlanceColors, todayTasks: List<WidgetTodayTask>
     ) {
         Text(
             text = "Quick Tasks",
-            style = TextStyle(color = colors.TEXT, fontWeight = FontWeight.Bold)
+            style = GlanceTypography.Title
         )
         Spacer(GlanceModifier.height(6.dp))
         // LazyColumn = real, native scrolling - shows every habit, no

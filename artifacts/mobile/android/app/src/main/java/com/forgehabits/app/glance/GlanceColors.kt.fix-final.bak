@@ -2,7 +2,6 @@ package com.forgehabits.app.glance
 
 import androidx.compose.ui.graphics.Color
 import androidx.glance.unit.ColorProvider
-import androidx.compose.ui.graphics.toArgb
 
 // Shared palette across all 4 Glance widgets - matches the ember-orange/
 // dark theme used in the widget preview thumbnails.
@@ -50,13 +49,6 @@ class GlanceColors(private val theme: String, private val accentKey: String) {
 
     val ACCENT_ARGB: Int
         get() = accentColor.toArgb()
-
-    val TRACK_ARGB: Int
-        get() =
-            if (theme == "light")
-                android.graphics.Color.parseColor("#E5E5E5")
-            else
-                android.graphics.Color.parseColor("#1C1C1C")
 }
 
 // Linear interpolation from dark track-adjacent orange to full #DF5B1B,
