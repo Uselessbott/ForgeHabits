@@ -2,7 +2,7 @@
 
 import colors from "@/constants/colors";
 import { useHabits } from '@/context/HabitsContext';
-import { generateColors, ACCENT_MAP, type ThemeKey, type AccentKey } from '@/constants/colors';
+import { generateColors, type ThemeKey, type AccentKey } from '@/constants/colors';
 
 
 /**
@@ -23,10 +23,9 @@ export function useColors() {
   const theme: ThemeKey =
     settings.theme === 'light' ? 'light' : 'super_amoled';
 
-  const rawAccent = (settings as any).accentColor;
   const accent: AccentKey =
-    rawAccent && ACCENT_MAP[rawAccent as AccentKey]
-      ? (rawAccent as AccentKey)
+    (settings as any).accentColor in colors
+      ? (settings as any).accentColor
       : 'orange';
 
   const palette = generateColors(theme, accent);
